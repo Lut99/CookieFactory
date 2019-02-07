@@ -1,38 +1,26 @@
 # CHANGELOG:
 v0.1.0 (alpha):
-  + Begun development
+  - Begun development
 v0.2.0 (alpha):
-  + Begun work of Logistics System
-  o Finished Worker System
+  - Begun work of Logistics System
+  - Finished Worker System
 v0.3.0 (alpha):
-  o Deleted all Logistic System due to the fact that modules had too little
+  - Deleted all Logistic System due to the fact that modules had too little
     control and only one storage, making that certain logistic flows were
     impossible. Instead completely redesigning to allow modules more control
 v0.4.0 (alpha):
-  + Begun debugging the logistics system
-  o After a lot of fucking about with the logistics system, finally got it to
+  - Begun debugging the logistics system
+  - After a lot of fucking about with the logistics system, finally got it to
     work
 v0.5.0 (alpha):
-  + Begun adding recipes
-  o Moved most classes to Tools.py
-  o Changed CSV loading to have it's own function in Tools.py
+  - Begun adding recipes
+  - Moved most classes to Tools.py
+  - Changed CSV loading to have it's own function in Tools.py
 v0.6.0 (alpha):
-  + Added test
-  o Finished recipes
+  - Added production chains
+  - Finished recipes
 
-# THE RECIPES
-
-CHOC-CHIP COOKIES
-INGREDIENTS:
-Flour (500g), Baking Soda (200g), Butter (100g), Sugar (25g), Egg (2 pcs),
-  Chocolate (2 pcs)
-
-1) Mix Flour, Butter, Sugar, Baking Soda, Chocolate and Eggs thoroughly
-2) Bake for about 30 mins under 300 celcius
-3) Enjoy
-
-Makes 13-15 cookies at a time
-
+# THE Products
 
 # THE FACTORY PROCESS
 
@@ -60,21 +48,27 @@ presumed to have infinite stock of stuff, and infinite demand for stuff.
 The factory has a few bare-essential modules, needed for normal factory
 process, regardless of the actual product(s) the factory makes:
 - Office:
-..The office is the main part of the factory. It manages all money flows, and,
-..more importantly, all optimisations done in the factory (buying new modules,
-..purchasing new recipes, ordering new researches, etc.)
+
+  The office is the main part of the factory. It manages all money flows, and,
+  more importantly, all optimisations done in the factory (buying new modules,
+  purchasing new recipes, ordering new researches, etc.)
+
 - Human Resources:
-..Human resources is the second main part of the factory. This module is in
-..charge of hiring, firing and paying all workers in the factory.
+
+  Human resources is the second main part of the factory. This module is in
+  charge of hiring, firing and paying all workers in the factory.
+
 - Logistics:
-..Logistics is the thirdmost main part of the factory. This module is in
-..control of the goods flow from the market to the market again (but not the
-..actual buying or selling).
+
+  Logistics is the thirdmost main part of the factory. This module is in
+  control of the goods flow from the market to the market again (but not the
+  actual buying or selling).
 - Depot:
-..The Depot is tied with the Logistics module, regarding importance in the
-..factory. In fact, it can be seen as an extension to the Logistics module. The
-..Depot is the link between the Factory and the outside world regarding
-..resources. The Factory can sell or buy resources through this way.
+  
+  The Depot is tied with the Logistics module, regarding importance in the
+  factory. In fact, it can be seen as an extension to the Logistics module. The
+  Depot is the link between the Factory and the outside world regarding
+  resources. The Factory can sell or buy resources through this way.
 
 Then there are some modules that aren't required exactly, but aren't related
 to a specific product either:
@@ -104,10 +98,10 @@ the modules together and allowing easier management of one product:
 
   The second job of Human Resources is to fire workers that have no longer a
   place in the factory. There are several reasons why a worker would be fired:
-  1. He's too old (older than 67 yrs)
-  2. He isn't working hard enough (more about that in a bit)
-  3. The position the worker was working is no longer available
-  4. The worker isn't paid enough (this is actually a resignation, but a handled
+  - He's too old (older than 67 yrs)
+  - He isn't working hard enough (more about that in a bit)
+  - The position the worker was working is no longer available
+  - The worker isn't paid enough (this is actually a resignation, but a handled
      as if the worker was fired because there's no damn difference).
   
   Accompanied with this is checking whether a worker works hard enough. Human
