@@ -134,7 +134,7 @@ the modules together and allowing easier management of one product:
   - The target modules, aka, modules that can receive from / deliver to this
     storage with this item
   - The 'anti-target' modules: modules that CANNOT receive from / deliver to
-    this storage with this item.
+    this storage with this item.  
   Once those rules are specified, the Logistics module will then try to bring
   these around according to the rules. It hauls items every hour, and when it
   does, it begins by collecting all desired items (storage's items of which the
