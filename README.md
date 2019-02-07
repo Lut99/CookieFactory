@@ -1,4 +1,4 @@
-# CHANGELOG:
+# Changelog:
 v0.1.0 (alpha):
   - Begun development
 v0.2.0 (alpha):
@@ -20,9 +20,9 @@ v0.6.0 (alpha):
   - Added production chains
   - Finished recipes
 
-# THE Products
+# The Products
 
-# THE FACTORY PROCESS
+# The Factory Process
 
 The factory is simply a collection of modules. There are some administrative
 modules, required for the logistics and administration of a factory. But most
@@ -44,27 +44,21 @@ iron) can be purchased on The Market. In future editions of this program,
 multiple factories might sustain each other. But for now, The Market is
 presumed to have infinite stock of stuff, and infinite demand for stuff.
 
-## MODULES
+## Modules
 The factory has a few bare-essential modules, needed for normal factory
 process, regardless of the actual product(s) the factory makes:
-- Office:
-
+- Office:  
   The office is the main part of the factory. It manages all money flows, and,
   more importantly, all optimisations done in the factory (buying new modules,
   purchasing new recipes, ordering new researches, etc.)
-
-- Human Resources:
-
+- Human Resources:  
   Human resources is the second main part of the factory. This module is in
   charge of hiring, firing and paying all workers in the factory.
-
-- Logistics:
-
+- Logistics:  
   Logistics is the thirdmost main part of the factory. This module is in
   control of the goods flow from the market to the market again (but not the
   actual buying or selling).
-- Depot:
-  
+- Depot:  
   The Depot is tied with the Logistics module, regarding importance in the
   factory. In fact, it can be seen as an extension to the Logistics module. The
   Depot is the link between the Factory and the outside world regarding
@@ -79,9 +73,8 @@ Finally, we have product specific modules. These often come in a Chain, linking
 the modules together and allowing easier management of one product:
 
 
-## SYSTEMS
-- Worker System:
-
+## Systems
+- Worker System:  
   The worker system is one of the three backbones of a factory. Without workers, 
   the factory would not be able to run at all. The worker system is managed 
   (alsmost) completely by Human Resources. The basic idea is that every module
@@ -118,8 +111,7 @@ the modules together and allowing easier management of one product:
   have to be able to do a job, which is the measure by which they determine if
   you can be hired or not.
 
-- Logistics System:
-
+- Logistics System:  
   The logistic system is another one of the Factory backbones. It handles all
   resource transferring between modules, which means that without, the factory
   wouldn't have any resources to work with. The logistic system relies on
@@ -148,8 +140,7 @@ the modules together and allowing easier management of one product:
   will satisfy these rules with the depot if their target and antitarget modules
   property holds for the depot (by default, it doesn't).
 
-- The Market:
-
+- The Market:  
   The Market is an abstract idea, representing the rest of the world the
   factory can interact with. At first, the market is static: there are endless
   resources and the prices don't change depending on how many bought or sold.
