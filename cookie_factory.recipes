@@ -1,0 +1,57 @@
+/*
+
+COOKIE FACTORY.recipes
+
+A file containing the recipes for the modules. These simply specify what
+  item(s) can be outputed by a given module, and what is needed to do so.
+The general format per recipe follows that of the AdvancedParser:
+############################################
+recipe (RecipeName) {
+  string (Module) {ModuleName}
+  list (Inputs) {
+    int (Item1) {AnyNumber}
+    int (Item2) {AnyNumber}
+    ...
+    int (ItemN) {AnyNumber}
+  }
+  list (Outputs) {
+    int (Item1) {AnyNumber}
+    int (Item2) {AnyNumber}
+    ...
+    int (ItemN) {AnyNumber}
+  }
+}
+############################################
+Each recipe should at least have a Module field (string) specified, indicating
+  the module this recipe acts on. Seconly, nearly every recipe also requires an
+  Inputs (list) and Outputs (list) field, enumerating all items that the module
+  requires to make the items in the Output. Finally, other fields can also
+  exist, for example to indicate baking time or something.
+
+*/
+
+recipe (ChocolateChipDough) {
+  string (Module) {mixer}
+  list (Inputs) {
+    int (Flour) {500}
+    int (Baking Soda) {200}
+    int (Butter) {100}
+    int (Sugar) {25}
+    int (Egg) {2}
+    int (Chocolate) {3}
+  }
+  list (Outputs) {
+    int (ChocolateChipDough) {15}
+  }
+}
+
+recipe (ChocolateChipCookie) {
+  string (Module) {oven}
+  list (Inputs) {
+    int (ChocolateChipDough) {1}
+  }
+  list (Outputs) {
+    int (ChocolateChipCookie) {1}
+  }
+  int (BakeTime) {600}
+}
