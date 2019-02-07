@@ -87,6 +87,7 @@ the modules together and allowing easier management of one product:
 
 ## SYSTEMS
 - Worker System:
+
   The worker system is one of the three backbones of a factory. Without workers, 
   the factory would not be able to run at all. The worker system is managed 
   (alsmost) completely by Human Resources. The basic idea is that every module
@@ -108,6 +109,7 @@ the modules together and allowing easier management of one product:
   3. The position the worker was working is no longer available
   4. The worker isn't paid enough (this is actually a resignation, but a handled
      as if the worker was fired because there's no damn difference).
+  
   Accompanied with this is checking whether a worker works hard enough. Human
   Resources does this by checking how many days the worker has worked in total,
   and comparing that to how many days of those the worker stopped working
@@ -121,7 +123,9 @@ the modules together and allowing easier management of one product:
   Accompanied with a position is the minimum amount of education a worker should
   have to be able to do a job, which is the measure by which they determine if
   you can be hired or not.
+
 - Logistics System:
+
   The logistic system is another one of the Factory backbones. It handles all
   resource transferring between modules, which means that without, the factory
   wouldn't have any resources to work with. The logistic system relies on
@@ -135,6 +139,7 @@ the modules together and allowing easier management of one product:
     storage with this item
   - The 'anti-target' modules: modules that CANNOT receive from / deliver to
     this storage with this item.  
+
   Once those rules are specified, the Logistics module will then try to bring
   these around according to the rules. It hauls items every hour, and when it
   does, it begins by collecting all desired items (storage's items of which the
@@ -148,7 +153,9 @@ the modules together and allowing easier management of one product:
   satisfied by the other rules (and there are still workers left), the system
   will satisfy these rules with the depot if their target and antitarget modules
   property holds for the depot (by default, it doesn't).
+
 - The Market:
+
   The Market is an abstract idea, representing the rest of the world the
   factory can interact with. At first, the market is static: there are endless
   resources and the prices don't change depending on how many bought or sold.
