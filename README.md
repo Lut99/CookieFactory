@@ -1,22 +1,22 @@
 # Changelog:
-v0.1.0 (alpha):
+- v0.1.0 (alpha):
   - Begun development
-v0.2.0 (alpha):
+- v0.2.0 (alpha):
   - Begun work of Logistics System
   - Finished Worker System
-v0.3.0 (alpha):
+- v0.3.0 (alpha):
   - Deleted all Logistic System due to the fact that modules had too little
     control and only one storage, making that certain logistic flows were
     impossible. Instead completely redesigning to allow modules more control
-v0.4.0 (alpha):
+- v0.4.0 (alpha):
   - Begun debugging the logistics system
   - After a lot of fucking about with the logistics system, finally got it to
     work
-v0.5.0 (alpha):
+- v0.5.0 (alpha):
   - Begun adding recipes
   - Moved most classes to Tools.py
   - Changed CSV loading to have it's own function in Tools.py
-v0.6.0 (alpha):
+- v0.6.0 (alpha):
   - Added production chains
   - Finished recipes
 
