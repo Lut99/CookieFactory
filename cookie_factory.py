@@ -5,7 +5,7 @@
 # For a detailed explaination and changelog, see cookie_factory_doc.txt
 
 # TODO:
-#  - Make UI with HTML interface
+#  - Make interface interface
 #  - Add recipes and production chains (load done, add evaluation)
 #  - Overhaul the rapport generator to leave more of the generating to the
 #    modules, allowing easier rapport generating with variable modules
