@@ -1,4 +1,4 @@
-#CHANGELOG:
+# CHANGELOG:
 v0.1.0 (alpha):
   + Begun development
 v0.2.0 (alpha):
@@ -21,7 +21,7 @@ v0.6.0 (alpha):
   o Finished recipes
 
 --------------------------------------------------------------------------------
-#THE RECIPES
+# THE RECIPES
 
 CHOC-CHIP COOKIES
 INGREDIENTS:
@@ -36,7 +36,7 @@ Makes 13-15 cookies at a time
 
 
 --------------------------------------------------------------------------------
-#THE FACTORY PROCESS
+THE FACTORY PROCESS
 
 The factory is simply a collection of modules. There are some administrative
 modules, required for the logistics and administration of a factory. But most
