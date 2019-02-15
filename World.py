@@ -15,6 +15,7 @@ import inspect
 import Tools
 from Tools import Market
 from Tools import Date
+from Tools import Command
 import Factory
 from Factory import Factory
 import Modules
@@ -57,6 +58,12 @@ class WorldUpdater (threading.Thread):
         self.last_draw = time.time()
         self.draw_interval = .25
 
+        # Define the commands
+        self.commands = [
+            Command("help", description="Shows this help menu", executer=self.command_help),
+            Command("stop", "quit", "exit", "shutdown", description="Stops the simulation", executer=self.command_quit)
+        ]
+
         print("Initialized WorldUpdater thread")
 
     def run (self):
@@ -93,15 +100,59 @@ class WorldUpdater (threading.Thread):
     def update (self):
         if time.time() - self.last_draw > self.draw_interval:
             # Update console
-            self.window.console.insert(tk.END, Tools.CONSOLE.flush())
+            self.print(Tools.CONSOLE.flush(), end="")
 
             # Update overview tab
             self.window.lblTime.config(text="Current time: " + str(self.time.gettime()))
             self.window.lblDate.config(text="Current data: " + str(self.time.getdate()))
             self.last_draw += self.draw_interval
 
+    # Prints on the command
+    def print(self, text, end="\n"):
+        if type(text) != str:
+            text = str(text)
+        self.window.console.insert(tk.END, text + end)
+
+    # Handles commands
+    def handle_command (self, command, args):
+        # Check if we have that command
+        handled = False
+        for cmd in self.commands:
+            if command in cmd.triggers:
+                cmd.execute(self, args)
+                handled = True
+                break
+        if not handled:
+            self.print("Unknown command '{}', type 'help' to see a list\n".format(command))
+
+        # Clear the entry
+        if self.running:
+            self.window.entry.delete(0, len(self.window.entry.get()))
+    
+    # Command handlers
+    def command_help (self, updater, args):
+        updater.print("*** COMMANDS AVAILABLE ***")
+        for command in updater.commands:
+            updater.print(" - ", end="")
+            i = 0
+            for trigger in command.triggers:
+                updater.print("'" + trigger + "'",end="")
+                if i == len(command.triggers) - 2:
+                    updater.print(" or ",end="")
+                elif i < len(command.triggers) - 2:
+                    updater.print(", ",end="")
+                i += 1
+            updater.print(":\n   " + command.description)
+        updater.print("**************************")
+    def command_quit (self, updater, args):
+        updater.print("Stopping...\n")
+        updater.window.root.destroy()
+        updater.running = False
+
 class Window ():
     def __init__(self):
+        self.stopped = False
+
         print("Loading interface...")
         self.root = tk.Tk()
         self.root.title("Factory Simulator")
@@ -191,15 +242,8 @@ class Window ():
         text = self.entry.get()
         # Split
         command, args = split_commandline(text)
-        if command == "exit":
-            self.console.insert(tk.END, "Stopping...\n")
-            self.stop()
-            sys.exit()
-        else:
-            self.console.insert(tk.END, "Unknown command '{}', type 'help' to see a list\n".format(command))
-
-        # Clear the entry
-        self.entry.delete(0, len(text))
+        # Run them
+        self.updater.handle_command(command, args)
         
 def main ():
     window = Window()
@@ -228,6 +272,7 @@ def main ():
     Tools.CONSOLE = Tools.Console()
 
     updater = WorldUpdater(window)
+    window.updater = updater
     updater.start()
 
     try:
