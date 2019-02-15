@@ -19,6 +19,12 @@
 - v0.6.0 (alpha):
   - Added production chains
   - Finished recipes
+- v0.7.0 (alpha):
+  - Added interface
+  - Reworked the archive to note interface-relevant data
+  - Added the ability to log on the interface console
+  - Changed factory running forgo threading and instead
+    work one-call-at-a-time related
 
 # The Products
 
