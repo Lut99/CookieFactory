@@ -20,6 +20,13 @@ import Factory
 from Factory import Factory
 import Modules
 
+def is_int(var):
+    try:
+        int(var)
+        return True
+    except ValueError:
+        return False
+
 def split_commandline(text):
     command = ""
     args = []
@@ -53,6 +60,7 @@ class WorldUpdater (threading.Thread):
 
         # Init the factory holder
         self.tasks = [Factory("Cookie Inc.", 2000000, "cookie", Market(Tools.ITEMS, Tools.RECIPES, Tools.PRODUCTION_CHAINS), self.time)]
+        self.last_tasks_hash = hash(tuple())
 
         # Init the UI redraw timer
         self.last_draw = time.time()
@@ -60,30 +68,37 @@ class WorldUpdater (threading.Thread):
 
         # Define the commands
         self.commands = [
+            Command("freeze","pause", description="Freeze the execution of the factories", executer=self.command_freeze),
+            Command("unfreeze","resume", description="Resumes the execution of the factories", executer=self.command_resume),
             Command("help", description="Shows this help menu", executer=self.command_help),
-            Command("stop", "quit", "exit", "shutdown", description="Stops the simulation", executer=self.command_quit)
+            Command("stop","quit","exit","shutdown", description="Stops the simulation", executer=self.command_quit)
         ]
 
         print("Initialized WorldUpdater thread")
 
     def run (self):
         self.running = True
+        self.frozen = False
+        self.freeze_start = -1
+        self.freeze_duration = -1
         task_i = 0
         ticked = []
         while self.running:
             # Run the current task
-            self.tasks[task_i].run(ticked)
+            if not self.frozen:
+                self.tasks[task_i].run(ticked)
+                task_i += 1
 
-            # Make sure we keep on looping
-            task_i += 1
-            if task_i >= len(self.tasks):
-                # Do a tick of the time
-                ticked = self.time.tick()
-                task_i = 0
-                # Update itself
-                self.update()
-                # Wait a bit
-                time.sleep(.1)
+                # Make sure we keep on looping
+                if task_i >= len(self.tasks):
+                    # Do a tick of the time
+                    ticked = self.time.tick()
+                    task_i = 0
+                    # Wait a bit
+                    time.sleep(.1)
+            
+            # Update itself
+            self.update()
         # Stop all the factories
         for task in self.tasks:
             task.stop()
@@ -98,7 +113,7 @@ class WorldUpdater (threading.Thread):
     
     # Updates the stats on-screen
     def update (self):
-        if time.time() - self.last_draw > self.draw_interval:
+        if self.running and time.time() - self.last_draw > self.draw_interval:
             # Update console
             self.print(Tools.CONSOLE.flush(), end="")
 
@@ -106,6 +121,22 @@ class WorldUpdater (threading.Thread):
             self.window.lblTime.config(text="Current time: " + str(self.time.gettime()))
             self.window.lblDate.config(text="Current data: " + str(self.time.getdate()))
             self.last_draw += self.draw_interval
+
+            # Update factory tab
+            tasks_hash = hash(tuple(self.tasks))
+            if self.last_tasks_hash != tasks_hash:
+                self.last_tasks_hash = tasks_hash
+                menu = self.window.FactorySelector["menu"]
+                menu.delete(0, tk.END)
+                for task in self.tasks:
+                    if isinstance(task, Factory):
+                        menu.add_command(label=task.name, command=lambda value=task.name: self.window.FactorySelectorVar.set(value))
+
+            # Check for unfreezing interval
+            if self.freeze_duration > -1 and time.time() - self.freeze_start > self.freeze_duration:
+                self.freeze_start = -1
+                self.freeze_duration = -1
+                self.command_resume(self, [])
 
     # Prints on the command
     def print(self, text, end="\n"):
@@ -127,10 +158,34 @@ class WorldUpdater (threading.Thread):
 
         # Clear the entry
         if self.running:
-            self.window.entry.delete(0, len(self.window.entry.get()))
+            self.window.entry.delete(0, tk.END)
     
     # Command handlers
-    def command_help (self, updater, args):
+    def command_freeze(self, updater, args):
+        extra = ""
+        if len(args) == 1:
+            if is_int(args[0]) and int(args[0]) >= 0:
+                self.freeze_start = time.time()
+                self.freeze_duration = int(args[0])
+                extra += " for {} seconds".format(self.freeze_duration)
+            else:
+                updater.print("Invalid argument: specify a positive integer")
+                return
+        
+        if updater.frozen:
+            updater.print("The simulation is already frozen.")
+        else:
+            updater.frozen = True
+            updater.print("Froze the execution of the simulation" + extra)
+            print("Froze the execution of the simulation" + extra)
+    def command_resume(self, updater, _):
+        if not updater.frozen:
+            updater.print("The simulation is already unfrozen.")
+        else:
+            updater.frozen = False
+            updater.print("Resumed the execution of the simulation")
+            print("Resumed the execution of the simulation")
+    def command_help (self, updater, _):
         updater.print("*** COMMANDS AVAILABLE ***")
         for command in updater.commands:
             updater.print(" - ", end="")
@@ -144,7 +199,7 @@ class WorldUpdater (threading.Thread):
                 i += 1
             updater.print(":\n   " + command.description)
         updater.print("**************************")
-    def command_quit (self, updater, args):
+    def command_quit (self, updater, _):
         updater.print("Stopping...\n")
         updater.window.root.destroy()
         updater.running = False
@@ -205,11 +260,18 @@ class Window ():
 
         # Factory
         print("  Loading 'Factory Details' tab...")
+        self.FactorySelectorVar = tk.StringVar(self.tab_factory)
+        self.FactorySelector = tk.OptionMenu(self.tab_factory, self.FactorySelectorVar, "<None>")
+        self.FactorySelector.grid(padx=10,pady=10,row=0,column=0,columnspan=2, sticky=tk.E+tk.W)
+
         self.boxFactoryInfo = tk.LabelFrame(self.tab_factory,text="Factory info")
         self.boxFactoryInfo.grid(padx=(10),pady=10,row=1,column=0)
 
         self.lblName = tk.Label(self.boxFactoryInfo, text="Name:")
         self.lblName.pack(side=tk.LEFT)
+
+        self.tab_factory.columnconfigure(1, weight=1)
+        self.tab_factory.rowconfigure(1, weight=1)
 
         # Options
         print("  Loading 'Options' tab...")
