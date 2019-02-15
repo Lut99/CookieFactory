@@ -53,5 +53,6 @@ recipe (ChocolateChipCookie) {
   list (Outputs) {
     int (ChocolateChipCookie) {1}
   }
-  int (BakeTime) {600}
+  int (BakeTemp) {300}
+  int (BakeDuration) {600}
 }
