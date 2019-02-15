@@ -6,9 +6,8 @@
 
 import random
 import sys
-sys.path.append("/Users/Tim/Documents/Python")
 
-import APIs.calculator
+import APIs.calculator as calculator
 import Tools
 from Tools import Date
 from Tools import Position
@@ -91,12 +90,11 @@ class Storage ():
         print("-" * 50)
 
 class Module ():
-    def __init__(self, name, type, cost, positions, modules, time, construction_time):
+    def __init__(self, name, cost, positions, modules, time, construction_time):
         if name == type:
             print("Name of module cannot equal it's type")
             return
         self.name = name
-        self.type = type
         self.cost = cost
         self.modules = modules
         self.time = time
@@ -114,8 +112,10 @@ class Module ():
 
 # Basic to any factory: manages money, houses the boss
 class Office (Module):
+    type = "office"
+
     def __init__(self, budget, market, modules, time):
-        super().__init__("Headquarters (HQ)", "office", 0, [Position(
+        super().__init__("Headquarters (HQ)", 0, [Position(
             name="CEO",
             workload=2,
             salary=100,
@@ -180,11 +180,15 @@ class Office (Module):
 
 # Can be purchased to research new recipes and modules.
 class Research (Module):
+    type = "research"
+
     def __init__(self):
         super().__init__()
 
 # A requirement for any factory. Manages staff and salaries.
 class HumanResources (Module):
+    type = "human_resources"
+
     def __init__(self, modules, time):
         worker_position = Position(
             name="Travel Agent",
@@ -193,7 +197,7 @@ class HumanResources (Module):
             schedule=[ 9, 17 ],
             education_level = 1
         )
-        super().__init__("Human Resources (HR)", "human_resources", 0, [worker_position for i in range(5)], modules, time, Date(0,0,0,0))
+        super().__init__("Human Resources (HR)", 0, [worker_position for i in range(5)], modules, time, Date(0,0,0,0))
         self.workers = []
 
         # Initialise the archive
@@ -329,8 +333,10 @@ class HumanResources (Module):
 
 # Manages resource flow
 class Logistics (Module):
+    type = "logistics"
+
     def __init__(self, modules, time):
-        super().__init__("Logistics", 'logistics', 0, [ Position(
+        super().__init__("Logistics", 0, [ Position(
             name = "Manager",
             workload = 2,
             salary = 300,
@@ -338,7 +344,7 @@ class Logistics (Module):
             education_level = 1
         ) ], modules, time, Date(0,0,0,0))
         # Add some additional positions
-        for i in range(10):
+        for _ in range(10):
             self.positions.append(Position(
                 name = "Forklift Operator",
                 workload = 1,
@@ -386,7 +392,6 @@ class Logistics (Module):
 
         # Now drive (not to the depot, do that afterwards)
         worker = 0
-        i = 0
         requests_overflow = []
         while len(requests) > 0:
             r = requests[0]
@@ -478,8 +483,10 @@ class Logistics (Module):
 
 # Serves as the connection between the factory and the (global) market.
 class Depot (Module):
+    type = "depot"
+
     def __init__(self, modules, time):
-        super().__init__("Depot", "depot", 0, [ Position(
+        super().__init__("Depot", 0, [ Position(
             name="Truck Driver",
             workload = 2,
             salary = 300,
@@ -531,6 +538,8 @@ class Depot (Module):
 # If the factory researched enough, they can unlock robots: cheaper, faster and
 #   mostly less-complaining workers. They are managed in this module.
 class RobotResources (Module):
+    type = "robot_resources"
+
     def __init__(self):
         super().__init__()
 
@@ -538,27 +547,32 @@ class RobotResources (Module):
 
 # Stores stuff
 class StoreRoom (Module):
+    type = "store_room"
+
     def __init__(self):
         super().__init__()
 
 # A Mixer, which can mix stuff.
 class Mixer (Module):
+    type = "mixer"
+    recipe_fields = [('Inputs', dict), ('Outputs', dict)]
+
     def __init__(self):
         super().__init__()
-
-        self.recipe_fields = [('Inputs', dict), ('Outputs', dict)]
 
 # An oven, which can heat stuff
 class Oven (Module):
+    type = "oven"
+    recipe_fields = [('Inputs', dict), ('Outputs', dict), ('BakeTemp', int), ('BakeDuration', int)]
+
     def __init__(self):
         super().__init__()
-
-        self.recipe_fields = [('Inputs', dict), ('Outputs', dict), ('BakeTemp', int), ('BakeDuration', int)]
-
 # OTHER MODULES
 
 # Test module
 class SimpleProcessingUnit (Module):
+    type = "simple_processing_unit"
+
     def __init__(self, name):
         super().__init__(name, "simple_processing_unit", 0, [ Position(
             name="Slave",
@@ -579,19 +593,3 @@ class SimpleProcessingUnit (Module):
                 amount = self.storage.retrieve('Wheat', 10)
                 overflow = self.storage.store('Flour', amount)
                 print("Processed {} wheat".format(amount - overflow))
-
-
-
-
-# Finally, define a publicly accessible dict which links module types to the
-#   actual modules
-MODULES = {
-    'office' : Depot,
-    'human_resources' : HumanResources,
-    'logistics' : Logistics,
-    'depot' : Depot,
-    'store_room' : StoreRoom,
-    'mixer' : Mixer,
-    'oven' : Oven,
-    'simple_processing_unit' : SimpleProcessingUnit
-}
