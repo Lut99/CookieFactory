@@ -79,27 +79,27 @@ class Buffer ():
         return self.brackets > 0 or self.curly_brackets > 0 or self.quotes or self.apostrofes
 
 # The standard DataType parsers
-def string_parser (text, DataTypes):
+def string_parser (name, text, DataTypes):
     # Simply return the text
     return text
-def int_parser (text, DataTypes):
+def int_parser (name, text, DataTypes):
     # Try to convert to int
     try:
         return int(text)
     except ValueError:
         raise DataTypeValueException("Could not parse '{}' as int: needs to be a whole number".format(text))
-def uint_parser (text, DataTypes):
+def uint_parser (name, text, DataTypes):
     # Convert to int
-    n = int_parser(text, DataTypes)
+    n = int_parser(name, text, DataTypes)
     if n < 0:
         raise DataTypeValueException("Could not parse '{}' as uint: cannot be negative".format(text))
-def float_parser (text, DataTypes):
+def float_parser (name, text, DataTypes):
     # Try to convert to float
     try:
         return float(text)
     except ValueError:
         raise DataTypeValueException("Could not parse '{}' as float: needs to be a number".format(text))
-def bool_parser (text, DataTypes):
+def bool_parser (name, text, DataTypes):
     # If not true (or 1) or false (or 0), return
     text = text.lower()
     if text == "1" or text == "true":
@@ -108,7 +108,7 @@ def bool_parser (text, DataTypes):
         return False
     else:
         raise DataTypeValueException("Could not parse '{}' as bool: needs to be '1' or 'true' for True, '0' or 'false' for False".format(text))
-def dict_parser (text, DataTypes):
+def dict_parser (name, text, DataTypes):
     # Fetch only the new types
     custom = []
     for t in DataTypes:
@@ -230,7 +230,7 @@ def parse (filepath, parseString=False, customDataTypes=[]):
                         # We've got a load new stuff, parse the buffer according to the type
                         for t in DATATYPES:
                             if t.keyword == var_type:
-                                parsed_dict[var_name] = t.parse(buf.get(), DATATYPES)
+                                parsed_dict[var_name] = t.parse(var_name, buf.get(), DATATYPES)
                                 # Reset the var_name and var_type
                                 var_name == ""
                                 var_type == ""
