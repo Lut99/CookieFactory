@@ -3,19 +3,40 @@
 # A file containing tools and stuff
 
 import sys
-sys.path.append("/Users/Tim/Documents/Python") 
 import os
 import random
 import numpy as np
 
-import APIs.AdvancedParser
+import APIs.AdvancedParser as AdvancedParser
 from Errors import FileParseError
-from Modules import MODULES
+
+# GOBAL VARIABLES
+NAMES = []
+ITEMS = []
+RECIPES = []
+PRODUCTION_CHAINS = []
+MODULES = {}
+CONSOLE = None
 
 # CLASSES
 
 # A class to keep track of the time
 class Date ():
+    NameOfMonth = {
+        0 : "January",
+        1 : "February",
+        2 : "March",
+        3 : "April",
+        4 : "May",
+        5 : "June",
+        6 : "July",
+        7 : "August",
+        8 : "September",
+        9 : "October",
+        10 : "November",
+        11 : "December"
+    }
+
     def __init__(self, hour=0, day=0, month=0, year=0):
         # Fix the values (if needed)
         while hour >= 24:
@@ -141,7 +162,7 @@ class Date ():
     # Get the total number hours
     def tohours (self):
         hours = self.hour
-        hours += self.days * 24
+        hours += self.day * 24
         hours += self.month * 30 * 24
         hours += self.year * 12 * 30 * 24
         return hours
@@ -155,15 +176,15 @@ class Date ():
         return days
     # Get the total number months
     def tomonths(self, ceiling=False):
-        months = self.month
-        month += self.years * 12
+        month = self.month
+        month += self.year * 12
         if ceiling:
-            month += (1 if self.hour > 0 or self.days > 0 else 0)
+            month += (1 if self.hour > 0 or self.day > 0 else 0)
         return month
     # Get the total number years
     def toyears(self, ceiling=False):
         if ceiling:
-            return self.year + (1 if self.hours > 0 or self.days > 0 or self.months > 0 else 0)
+            return self.year + (1 if self.hour > 0 or self.day > 0 or self.month > 0 else 0)
         else:
             return self.year
 
@@ -173,26 +194,6 @@ class Date ():
     # ... or the time
     def gettime(self):
         return "{:02d}:00:00".format(self.hour)
-
-    # STATIC FUNCTIONS
-
-    # Returns the month name of the given number
-    def name_of_month (month):
-        months = {
-            0 : "January",
-            1 : "February",
-            2 : "March",
-            3 : "April",
-            4 : "May",
-            5 : "June",
-            6 : "July",
-            7 : "August",
-            8 : "September",
-            9 : "October",
-            10 : "November",
-            11 : "December"
-        }
-        return months[month]
 
 # Class representing the Position a worker can work in
 class Position ():
@@ -215,17 +216,21 @@ class Worker ():
 
     def __init__(self, name="@rnd", age="@rnd", stats="@rnd"):
         if name == "@rnd":
-            rnd_name = Names[random.randint(0,len(Names)-1)]
-            if len(rnd_name[0]) > 0:
-                name = rnd_name[1] + " " + rnd_name[0]
-            else:
-                name = rnd_name[0]
+            rnd_i = random.randint(0,len(NAMES['FirstName'])-1)
+            name = NAMES['FirstName'][rnd_i] + " " + NAMES['LastName'][rnd_i]
         self.name = name
         self.age = age if age != "@rnd" else random.randint(18,67)
         self.stats = stats if stats != "@rnd" else Worker.Stats()
         self.energy = self.stats.base_energy
         self.on_duty = False
         self.no_salary = 0
+
+        # Prepare some standard initialisations
+        self.module = "__EMPTY"
+        self.position = Position()
+        self.started = Date(0, 0, 0, 1970)
+        self.perfect = -1
+        self.salary = -1
 
     def sleep (self):
         # Reset energy
@@ -262,12 +267,12 @@ class Market ():
         self.__items = {}
         self.buy_list = {}
         self.sell_list = {}
-        for item in items:
-            self.__items[item[0]] = {'buy':item[1],'sell':item[2]}
-            if item[1] != "-":
-                self.buy_list[item[0]] = float(item[1])
-            if item[2] != "-":
-                self.sell_list[item[0]] = float(item[2])
+        for i in range(len(items)):
+            self.__items[items['Name'][i]] = {'buy':items['BuyPrice'][i],'sell':items['SellPrice'][i]}
+            if items['BuyPrice'][i] != "-":
+                self.buy_list[items['Name'][i]] = float(items['BuyPrice'][i])
+            if items['SellPrice'][i] != "-":
+                self.sell_list[items['Name'][i]] = float(items['SellPrice'][i])
         # Save the recipes and production chains
         self.recipes = recipes
         self.production_chains = production_chains
@@ -304,10 +309,12 @@ class ModulesList ():
             to_return = self.__iterable.__next__()
             return self.__modules[to_return]
 
-    def __init__(self):
+    def __init__(self, time):
         self.__modules = {}
         # Init the empty 'todo' list
         self.__constructing = []
+
+        self.time = time
 
     # Allow the external world to directly interfact with __modules
     def __getitem__(self, key):
@@ -321,12 +328,12 @@ class ModulesList ():
 
     # Handle the __in__ operator
     def __contains__(self, elem):
-        if isinstance(elem, Modules.Module):
-            # If it's a module, check direct
-            return elem.name in self.__modules
-        elif type(elem) == str:
+        if type(elem) == str:
             # If it's a string, check that instead
             return elem in self.__modules
+        else:
+            # If it's a module, check direct
+            return elem.name in self.__modules
         return False
 
     # Spawn a new module (no construction, no pay)
@@ -456,44 +463,46 @@ def load_csv (path, elem_type="*"):
     return csv_data
 
 # The recipe parser
-def recipe_parser (text, DataTypes):
+def recipe_parser (name, text, DataTypes):
     # First, parse as list
-    recipes = AdvancedParser.dict_parser(text, DataTypes)
-    for r in recipes:
-        recipe = recipes[r]
-        if 'Module' not in recipe:
-            raise AdvancedParser.DataTypeValueException("Could not parse recipe '{}' as recipe: missing 'Module' field".format(r))
-        # Get the module
-        module = recipe['Module']
-        if module not in MODULES:
-            raise AdvancedParser.DataTypeValueException("Could not parse recipe '{}' as recipe: Unknown module '{}'".format(r, module))
-        # Check if it supports recipeing
-        if not hasattr(module, 'recipe_fields'):
-            raise AdvancedParser.DataTypeValueException("Could not parse recipe '{}' as recipe: Module '{}' does not produce anything".format(r, module))
-        # Check if it has all other required fields
-        for field, t in module.recipe_fields:
-            if field not in recipe:
-                raise AdvancedParser.DataTypeValueException("Could not parse recipe '{}' as recipe: Module '{}' requires '{}' field, but not given".format(r, module, field))
-            elif type(recipe[field]) != t:
-                raise AdvancedParser.DataTypeValueException("Could not parse recipe '{}' as recipe: Expected field '{}' to be {}, got {}".format(r, field, t, type(recipe[field])))
+    recipe = AdvancedParser.dict_parser(name, text, DataTypes)
+
+    if 'Module' not in recipe:
+        raise AdvancedParser.DataTypeValueException("Could not parse recipe '{}' as recipe: missing 'Module' field".format(name))
+    # Get the module
+    module = recipe['Module']
+    if module not in MODULES:
+        raise AdvancedParser.DataTypeValueException("Could not parse recipe '{}' as recipe: Unknown module '{}'".format(name, module))
+    # Check if it supports recipeing
+    if not hasattr(MODULES[module], 'recipe_fields'):
+        raise AdvancedParser.DataTypeValueException("Could not parse recipe '{}' as recipe: Module '{}' does not produce anything".format(name, module))
+    # Check if it has all other required fields
+    for field, t in MODULES[module].recipe_fields:
+        if field not in recipe:
+            raise AdvancedParser.DataTypeValueException("Could not parse recipe '{}' as recipe: Module '{}' requires '{}' field, but not given".format(name, module, field))
+        elif type(recipe[field]) != t:
+            raise AdvancedParser.DataTypeValueException("Could not parse recipe '{}' as recipe: Expected field '{}' to be {}, got {}".format(name, field, t, type(recipe[field])))
     # Done
-    return recipes
-def chain_parser (text, DataTypes):
+    return recipe
+def chain_parser (name, text, DataTypes):
     # First, parse as list
-    chains = AdvancedParser.dict_parser(text, DataTypes)
-    for c in chains:
-        chain = chains[c]
-        for m in chain:
-            module = chain[m]
-            for field in ['input', 'recipe', 'output']:
-                if field not in module:
-                    raise AdvancedParser.DataTypeValueException("Could not parse chain '{}' as production chain: missing '{}' field in module '{}'".format(c, field, m))
-                if field == 'input' or field == 'output':
-                    # Check if the input module (or market) exists
-                    if module[field] not in MODULES:
-                        raise AdvancedParser.DataTypeValueException("Could not parse chain '{}' as production chain: Unknown module '{}'".format(c, m))
+    chain = AdvancedParser.dict_parser(name, text, DataTypes)
+
     # Done
-    return chains
+    return chain
+def module_parser(name, text, DataTypes):
+    # First, parse as list
+    module = AdvancedParser.dict_parser(name, text, DataTypes)
+
+    fields = [('input', MODULES), ('recipe', [recipe.name for recipe in RECIPES]), ('output', MODULES)]
+    for f, ls in fields:
+        if f not in module:
+            raise AdvancedParser.DataTypeValueException("Could not parse module '{}' as module: Missing field '{}'".format(name, f))
+        # Check if the value is valid
+        if module[f] not in ls and (f == 'recipe' or module[f] != "Market"):
+            raise AdvancedParser.DataTypeValueException("Could not parse module '{}' as module: Value '{}' in '{}' does not exist".format(name, module[f], f))
+    # Done
+    return module
 
 # Load a .recipes file
 def load_recipes(path, Items):
@@ -511,7 +520,7 @@ def load_recipes(path, Items):
 
 def load_production_chains (path):
     # Load the production chain
-    prodchain_dict = AdvancedParser.parse(path, customDataTypes=[AdvancedParser.DataType('productionChain', chain_parser)])
+    prodchain_dict = AdvancedParser.parse(path, customDataTypes=[AdvancedParser.DataType('productionChain', chain_parser), AdvancedParser.DataType('module', module_parser)])
     # Convert to ProductionChain objects
     production_chains = []
     for chain in prodchain_dict:
@@ -521,3 +530,23 @@ def load_production_chains (path):
 
     # Done, return
     return production_chains
+
+# CONSOLE
+class Console:
+    def __init__(self, max_lines=100):
+        self.max_lines = 100
+        self.__lines = ""
+    
+    def write(self, text):
+        self.print(text, end="")
+    
+    def print(self, text, end="\n"):
+        if type(text) != str:
+            text = str(text)
+        self.__lines += text + end
+        
+    def flush (self):
+        # Return the text and empty
+        temp = self.__lines
+        self.__lines = ""
+        return temp
