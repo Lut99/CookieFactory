@@ -1,7 +1,7 @@
-Name,BuyPrice,SellPrice
-Flour,10,-
-Milk,10,-
-Egg,10,-
-Cookie,-,20
-Dough,-,10
-Wheat,10,-
+Name,Type,BuyPrice,SellPrice
+Flour,Produce,10,-
+Milk,Produce,10,-
+Egg,Produce,10,-
+Wheat,Produce,10,-
+ChocolateChipCookie,Cookie,-,20
+ChocolateChipDough,Ingredient,-,-
