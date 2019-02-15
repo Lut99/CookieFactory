@@ -268,7 +268,7 @@ class Market ():
         self.buy_list = {}
         self.sell_list = {}
         for i in range(len(items)):
-            self.__items[items['Name'][i]] = {'buy':items['BuyPrice'][i],'sell':items['SellPrice'][i]}
+            self.__items[items['Name'][i]] = {'type':items['Type'][i],'buy':items['BuyPrice'][i],'sell':items['SellPrice'][i]}
             if items['BuyPrice'][i] != "-":
                 self.buy_list[items['Name'][i]] = float(items['BuyPrice'][i])
             if items['SellPrice'][i] != "-":
@@ -550,3 +550,17 @@ class Console:
         temp = self.__lines
         self.__lines = ""
         return temp
+
+class Command:
+    def __init__(self, *args, description="<UNDEF>", executer=None):
+        if executer == None:
+            raise ValueError("No executer specified")
+        
+        # Parse the arguments
+        self.triggers = []
+        for arg in args:
+            self.triggers.append(arg)
+        
+        # Save the description and executer
+        self.description = description
+        self.execute = executer
