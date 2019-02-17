@@ -11,8 +11,8 @@ import APIs.AdvancedParser as AdvancedParser
 from Errors import FileParseError
 
 # GOBAL VARIABLES
-NAMES = []
-ITEMS = []
+NAMES = {}
+ITEMS = {}
 RECIPES = []
 PRODUCTION_CHAINS = []
 MODULES = {}
