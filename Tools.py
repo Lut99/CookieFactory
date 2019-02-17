@@ -351,6 +351,8 @@ class ModulesList ():
             self.logistics = module
         elif special == "depot":
             self.depot = module
+        elif special == "archive":
+            self.archive = module
 
     # Add a module the official way (construction & pay)
     def add(self, module):
