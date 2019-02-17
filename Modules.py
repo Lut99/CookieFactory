@@ -359,10 +359,6 @@ class Logistics (Module):
             ))
         # Set the amount that can be hauled per forktruck
         self.max_haul = 50
-        # To keep track of hauled goods
-        self.archive = {
-            "hauled":0
-        }
 
     # Override to do work
     def do_work (self, workers):
