@@ -208,9 +208,10 @@ class HumanResources (Module):
         self.workers = []
 
         # Initialise the archive
-        self.archive['history'] = []
-        self.archive['hired'] = 0
-        self.archive['fired'] = 0
+        self.modules.archive.add_cabinet("Workers")
+        self.modules.archive.set("Workers", "History", [])
+        self.modules.archive.set("Workers", "Hired", 0)
+        self.modules.archive.set("Workers", "Fired", 0)
 
     # Counts position in a module
     def count_positions(self, positions, position):
@@ -233,15 +234,12 @@ class HumanResources (Module):
             if w.age > 67:
                 # Fire due to pension
                 self.fire(w, "pension age")
-                self.archive['fired'] += 1
             elif w.no_salary == 4:
                 # He quits do to not enough salary
                 self.fire(w, "not paid enough")
-                self.archive['fired'] += 1
             elif w.no_salary == 0 and w.perfect / (self.time - w.started).todays() < 0.5:
                 # Fire due to too low performance
                 self.fire(w, "too low performance")
-                self.archive['fired'] += 1
             else:
                 # Count the workers per module and position
                 if w.module in modules_count:
@@ -265,7 +263,6 @@ class HumanResources (Module):
                     # Hire a possible additional worker (1 per module)
                     w = available_workers[random.randint(0,len(available_workers)-1)]
                     if self.hire(w, m, p) == True:
-                        self.archive['hired'] += 1
                         modules_count[m.name][p.name] += 1
                         if m != self: self.work_done -= 1
                         available_workers.remove(w)
@@ -313,6 +310,7 @@ class HumanResources (Module):
             worker.perfect = 0
             worker.salary = position.salary
             self.workers.append(worker)
+            self.modules.archive.update("Workers", "Hired", 1)
             return True
         return False
 
@@ -320,14 +318,14 @@ class HumanResources (Module):
         # Remove the worker
         self.workers.remove(worker)
         # Now add his name and reason for fireing
-        self.archive['history'].append({
+        self.modules.archive.update("Workers", "History", {
             'name' : worker.name,
             'module' : worker.module,
             'position' : worker.position.name,
             'days_employed' : (self.time - worker.started).todays(),
             'reason' : reason
         })
-        self.archive['fired'] += 1
+        self.modules.archive.update("Workers", "Fired", 1)
 
     # Returns all workers working in a specific model and / or position
     def get_workers(self, module="*", position="*"):
