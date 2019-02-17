@@ -131,6 +131,15 @@ class WorldUpdater (threading.Thread):
                 for task in self.tasks:
                     if isinstance(task, Factory):
                         menu.add_command(label=task.name, command=lambda value=task.name: self.window.FactorySelectorVar.set(value))
+            # Update the info according to the selected factory
+            info = "Name: \nType: \nFounded: "
+            target = self.window.FactorySelectorVar.get()
+            for task in self.tasks:
+                if isinstance(task, Factory) and task.name == target:
+                    info = "Name: " + task.name + "\nType: " + task.type + "\nFounded: " + task.modules.archive.get('founded')
+                    break
+
+            self.window.lblFactoryInfo.config(text=info)
 
             # Check for unfreezing interval
             if self.freeze_duration > -1 and time.time() - self.freeze_start > self.freeze_duration:
@@ -179,6 +188,11 @@ class WorldUpdater (threading.Thread):
             updater.print("Froze the execution of the simulation" + extra)
             print("Froze the execution of the simulation" + extra)
     def command_resume(self, updater, _):
+        # Cancel the freeze timer if it's running
+        if self.freeze_start >= 0 or self.freeze_duration >= 0:
+            self.freeze_start = -1
+            self.freeze_duration = -1
+
         if not updater.frozen:
             updater.print("The simulation is already unfrozen.")
         else:
@@ -267,11 +281,11 @@ class Window ():
         self.boxFactoryInfo = tk.LabelFrame(self.tab_factory,text="Factory info")
         self.boxFactoryInfo.grid(padx=(10),pady=10,row=1,column=0)
 
-        self.lblName = tk.Label(self.boxFactoryInfo, text="Name:")
-        self.lblName.pack(side=tk.LEFT)
+        self.lblFactoryInfo = tk.Label(self.boxFactoryInfo, text="", justify=tk.LEFT)
+        self.lblFactoryInfo.pack(side=tk.LEFT)
 
         self.tab_factory.columnconfigure(1, weight=1)
-        self.tab_factory.rowconfigure(1, weight=1)
+        self.tab_factory.rowconfigure(2, weight=1)
 
         # Options
         print("  Loading 'Options' tab...")
