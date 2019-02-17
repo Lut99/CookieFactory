@@ -35,6 +35,7 @@ class Factory ():
         # Init modules so we can pass a reference
         self.modules = ModulesList(self.time)
         # Add the basic objects
+        self.modules.spawn(Modules.Archive(self.modules, self.time), special="archive")
         self.modules.spawn(Modules.Office(budget, self.market, self.modules, self.time), special="office")
         self.modules.spawn(Modules.HumanResources(self.modules, self.time), special="hr")
         self.modules.spawn(Modules.Logistics(self.modules, self.time), special="logistics")
@@ -62,11 +63,6 @@ class Factory ():
             # Update construction
             self.modules.construct()
 
-            # Call archive managers
-            for m in self.modules:
-                if hasattr(m, 'manage_archive'):
-                    m.manage_archive()
-
         if 'months' in ticked:
             # A month ended
 
@@ -81,6 +77,9 @@ class Factory ():
             # Age up workers
             for w in self.modules.hr.workers:
                 w.celebrate_birthday()
+        
+        # Call archive managers
+        self.modules.archive.manage(ticked)
 
     # Threading functions
     def log (self, text):
