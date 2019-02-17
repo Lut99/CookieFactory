@@ -128,9 +128,15 @@ class Office (Module):
         # Prepare the production chains
         self.production_chains = []
         # Do the archive
-        self.archive['daily_balances'] = []
-        self.archive['yearly_balances'] = [ self.budget ]
-        self.archive['sold'] = 0
+        self.modules.archive.add_cabinet("General")
+        self.modules.archive.set("General", "Founded", self.time.now())
+
+        self.modules.archive.add_cabinet("Finance")
+        self.modules.archive.set("Finance", "Sold", 0)
+        self.modules.archive.set("Finance", "Daily Balances", [])
+        self.modules.archive.set("Finance", "Yearly Balances", [])
+
+        self.modules.archive.add_tick(self.manage_archive)
 
     def check_balance (self):
         return self.budget
@@ -149,7 +155,7 @@ class Office (Module):
         # Pay until we get to an amount we can buy
         if item not in self.market.buy_list:
             # Cannot buy
-            print("Attempted to buy unexisting item from market: {}".format(item))
+            Tools.CONSOLE.print("Attempted to buy unexisting item from market: {}".format(item))
             return 0
         price = self.market.buy_list[item]
         while self.budget < price * amount:
@@ -161,8 +167,8 @@ class Office (Module):
     def sell_resources(self, item, amount):
         # Sell it the market
         self.deposit(self.market.sell(item, amount))
-        # Update the archive
-        self.archive['sold'] += amount
+        # Manage the counter for the archive
+        self.modules.archive.update('Financial', 'Total Sold', 1)
 
     # Evaluate if we need more production chains
     def evaluate (self):
@@ -170,13 +176,14 @@ class Office (Module):
             pass
 
     # Archive certain stats
-    def manage_archive (self):
-        if self.time.hour == 0:
+    @staticmethod
+    def manage_archive (modules, ticked):
+        if 'days' in ticked:
             # New day
-            self.archive['daily_balances'].append(self.budget)
-            if self.time.day == 0 and self.time.month == 0:
+            modules.archive.update('Finance', 'Daily Balances', modules.office.check_balance())
+            if 'years' in ticked:
                 # New year
-                self.archive['yearly_balances'].append(self.budget)
+                modules.archive.update('Financial', 'Yearly Balances', modules.office.check_balance())
 
 # Can be purchased to research new recipes and modules.
 class Research (Module):
@@ -533,6 +540,117 @@ class Depot (Module):
         # Return the items bought instead
         return bought
 
+# Saves all sort of stats about the factory
+class Archive (Module):
+    type = "archive"
+
+    def __init__(self, modules, time):
+        super().__init__("Archive", 0, [Position(
+            name="Clerk",
+            workload=0,
+            salary=500,
+            schedule=[9,17],
+            education_level=2
+        ) for _ in range(5)], modules, time, Date(0,0,0,0))
+
+        # Init the __cabinets list
+        self.__cabinets = {}
+        # Init the __ticks list
+        self.__ticks = []
+        
+        # Done
+    
+    def add_cabinet(self, name):
+        if name in self.__cabinets:
+            Tools.CONSOLE.print("[Archive] Attempting to add cabinet that already exists: {}".format(name))
+            return False
+
+        self.__cabinets[name] = {}
+        return True
+
+    def remove_cabinet (self, name):
+        if name not in self.__cabinets:
+            Tools.CONSOLE.print("[Archive] Attempting to remove cabinet that does not exists: {}".format(name))
+            return False
+
+        del self.__cabinets[name]
+        return True
+    
+    def add_tick (self, tick_handler):
+        self.__ticks.append(tick_handler)
+
+    def remove_tick (self, tick_handler):
+        self.__ticks.remove(tick_handler)
+
+    def manage (self, ticked):
+        # For each clerk, manage it
+        for tick_handler in self.__ticks:
+            tick_handler(self.modules, ticked)
+        
+    def set (self, cabinet, shelf, value):
+        if cabinet not in self.__cabinets:
+            Tools.CONSOLE.print("[Archive] Attempting to log in non-existing cabinet '{}'".format(cabinet))
+            return False
+        self.__cabinets[cabinet][shelf] = value
+        return True
+    
+    def get (self, cabinet, shelf):
+        if cabinet not in self.__cabinets:
+            Tools.CONSOLE.print("[Archive] Attempting to retrieve from non-existing cabinet '{}'".format(cabinet))
+            return None
+        if shelf not in self.__cabinets[cabinet]:
+            Tools.CONSOLE.print("[Archive] Attempting to retrieve from non-existing shelf '{}' in cabinet '{}'".format(shelf, cabinet))
+            return None
+        return self.__cabinets[cabinet][shelf]
+    
+    # Updates in a clever way
+    def update (self, cabinet, shelf, d_value):
+        if cabinet not in self.__cabinets:
+            Tools.CONSOLE.print("[Archive] Attempting to update non-existing cabinet '{}'".format(cabinet))
+            return False
+        if shelf not in self.__cabinets[cabinet]:
+            Tools.CONSOLE.print("[Archive] Attempting to update non-existing shelf '{}' in cabinet '{}'".format(shelf, cabinet))
+            return False
+        # Check that shelf type
+        shelf_type = type(self.__cabinets[cabinet][shelf])
+        if shelf_type == str:
+            if type(d_value) != str:
+                d_value = str(d_value)
+            self.__cabinets[cabinet][shelf] += d_value
+        elif shelf_type == int:
+            if type(d_value) != int:
+                Tools.CONSOLE.print("[Archive] Attempting to update shelf '{}' (integer) in cabinet '{}' with '{}' ({})".format(shelf, cabinet, d_value, type(d_value)))
+                return False
+            self.__cabinets[cabinet][shelf] += d_value
+        elif shelf_type == float:
+            if type(d_value) != int and type(d_value) != float:
+                Tools.CONSOLE.print("[Archive] Attempting to update shelf '{}' (float) in cabinet '{}' with '{}' ({})".format(shelf, cabinet, d_value, type(d_value)))
+                return False
+            self.__cabinets[cabinet][shelf] += d_value
+        elif shelf_type == list:
+            if type(d_value) == list:
+                self.__cabinets[cabinet][shelf] += d_value
+            else:
+                self.__cabinets[cabinet][shelf].append(d_value)
+        elif shelf_type == dict:
+            if type(d_value) != tuple or len(d_value) != 2:
+                Tools.CONSOLE.print("[Archive] Attempting to update shelf '{}' (dictionary) in cabinet '{}', but not given key / value tuple".format(shelf, cabinet))
+                return False
+            self.__cabinets[cabinet][shelf][d_value[0]] = d_value[1]
+        else:
+            Tools.CONSOLE.print("[Archive] Attempting to update shelf '{}' in cabinet '{}', but that value isn't updatable".format(shelf, cabinet))
+            return False
+        return True
+
+    def empty (self, cabinet, shelf):
+        if cabinet not in self.__cabinets:
+            Tools.CONSOLE.print("[Archive] Attempting to clean non-existing cabinet '{}'".format(cabinet))
+            return False
+        if shelf not in self.__cabinets[cabinet]:
+            Tools.CONSOLE.print("[Archive] Attempting to clean non-existing shelf '{}' in cabinet '{}'".format(shelf, cabinet))
+            return False
+        del self.__cabinets[cabinet][shelf]
+        return True
 
 # *** OPTIONAL ***
 # If the factory researched enough, they can unlock robots: cheaper, faster and
