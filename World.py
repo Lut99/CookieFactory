@@ -136,7 +136,7 @@ class WorldUpdater (threading.Thread):
             target = self.window.FactorySelectorVar.get()
             for task in self.tasks:
                 if isinstance(task, Factory) and task.name == target:
-                    info = "Name: " + task.name + "\nType: " + task.type + "\nFounded: " + task.modules.archive.get('founded')
+                    info = "Name: " + task.name + "\nType: " + task.type + "\nFounded: " + task.modules.archive.get("General", "Founded").getdate()
                     break
 
             self.window.lblFactoryInfo.config(text=info)
