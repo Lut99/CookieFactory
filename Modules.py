@@ -132,7 +132,7 @@ class Office (Module):
         self.modules.archive.set("General", "Founded", self.time.now())
 
         self.modules.archive.add_cabinet("Finance")
-        self.modules.archive.set("Finance", "Sold", 0)
+        self.modules.archive.set("Finance", "Total Sold", 0)
         self.modules.archive.set("Finance", "Daily Balances", [])
         self.modules.archive.set("Finance", "Yearly Balances", [])
 
@@ -168,7 +168,7 @@ class Office (Module):
         # Sell it the market
         self.deposit(self.market.sell(item, amount))
         # Manage the counter for the archive
-        self.modules.archive.update('Financial', 'Total Sold', 1)
+        self.modules.archive.update('Finance', 'Total Sold', 1)
 
     # Evaluate if we need more production chains
     def evaluate (self):
@@ -183,7 +183,7 @@ class Office (Module):
             modules.archive.update('Finance', 'Daily Balances', modules.office.check_balance())
             if 'years' in ticked:
                 # New year
-                modules.archive.update('Financial', 'Yearly Balances', modules.office.check_balance())
+                modules.archive.update('Finance', 'Yearly Balances', modules.office.check_balance())
 
 # Can be purchased to research new recipes and modules.
 class Research (Module):
