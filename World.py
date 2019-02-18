@@ -95,7 +95,8 @@ class WorldUpdater (threading.Thread):
                     ticked = self.time.tick()
                     task_i = 0
                     # Wait a bit
-                    time.sleep(.1)
+                    if 'days' in ticked:
+                        time.sleep(.1)
             
             # Update itself
             self.update()
@@ -136,7 +137,13 @@ class WorldUpdater (threading.Thread):
             target = self.window.FactorySelectorVar.get()
             for task in self.tasks:
                 if isinstance(task, Factory) and task.name == target:
-                    info = "Name: " + task.name + "\nType: " + task.type + "\nFounded: " + task.modules.archive.get("General", "Founded").getdate()
+                    info = (
+                        "Name: " + task.name + 
+                        "\nType: " + task.type + 
+                        "\nAge: " + str((self.time - task.modules.archive.get("General", "Founded")).toyears()) + " yrs" +
+                        "\nFounded: " + task.modules.archive.get("General", "Founded").getdate() + 
+                        "\nTotal sold: " + str(task.modules.archive.get("Finance", "Total Sold"))
+                    )
                     break
 
             self.window.lblFactoryInfo.config(text=info)
