@@ -335,6 +335,10 @@ class ModulesList ():
             # If it's a module, check direct
             return elem.name in self.__modules
         return False
+    
+    # Handle len()
+    def __len__(self):
+        return len(self.__modules)
 
     # Spawn a new module (no construction, no pay)
     def spawn(self, module, special="None"):
