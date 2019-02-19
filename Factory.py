@@ -35,11 +35,11 @@ class Factory ():
         # Init modules so we can pass a reference
         self.modules = ModulesList(self.time)
         # Add the basic objects
-        self.modules.spawn(Modules.Archive(self.modules, self.time), special="archive")
-        self.modules.spawn(Modules.Office(budget, self.market, self.modules, self.time), special="office")
-        self.modules.spawn(Modules.HumanResources(self.modules, self.time), special="hr")
-        self.modules.spawn(Modules.Logistics(self.modules, self.time), special="logistics")
-        self.modules.spawn(Modules.Depot(self.modules, self.time), special="depot")
+        self.modules.spawn(Modules.Archive(self.name, self.modules, self.time), special="archive")
+        self.modules.spawn(Modules.Office(budget, self.market, self.name, self.modules, self.time), special="office")
+        self.modules.spawn(Modules.HumanResources(self.name, self.modules, self.time), special="hr")
+        self.modules.spawn(Modules.Logistics(self.name, self.modules, self.time), special="logistics")
+        self.modules.spawn(Modules.Depot(self.name, self.modules, self.time), special="depot")
 
         self.log("Factory founded")
 
