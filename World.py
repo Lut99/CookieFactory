@@ -11,6 +11,7 @@ from tkinter import scrolledtext
 import threading
 import time
 import inspect
+from collections import defaultdict
 
 import Tools
 from Tools import Market
@@ -60,7 +61,6 @@ class WorldUpdater (threading.Thread):
 
         # Init the factory holder
         self.tasks = [Factory("Cookie Inc.", 2000000, "cookie", Market(Tools.ITEMS, Tools.RECIPES, Tools.PRODUCTION_CHAINS), self.time)]
-        self.last_tasks_hash = hash(tuple())
 
         # Init the UI redraw timer
         self.last_draw = time.time()
@@ -73,6 +73,9 @@ class WorldUpdater (threading.Thread):
             Command("help", description="Shows this help menu", executer=self.command_help),
             Command("stop","quit","exit","shutdown", description="Stops the simulation", executer=self.command_quit)
         ]
+
+        # Init the prev dict
+        self.prev = defaultdict(str)
 
         print("Initialized WorldUpdater thread")
 
@@ -125,34 +128,63 @@ class WorldUpdater (threading.Thread):
 
             # Update factory tab
             tasks_hash = hash(tuple(self.tasks))
-            if self.last_tasks_hash != tasks_hash:
-                self.last_tasks_hash = tasks_hash
+            if self.prev['task_hash'] != tasks_hash:
+                self.prev['task_hash'] = tasks_hash
                 menu = self.window.FactorySelector["menu"]
                 menu.delete(0, tk.END)
                 for task in self.tasks:
                     if isinstance(task, Factory):
                         menu.add_command(label=task.name, command=lambda value=task.name: self.window.FactorySelectorVar.set(value))
-            # Update the info according to the selected factory
-            info = "Name: \nType: \nFounded: "
-            target = self.window.FactorySelectorVar.get()
+            
             for task in self.tasks:
-                if isinstance(task, Factory) and task.name == target:
-                    info = (
-                        "Name: " + task.name + 
-                        "\nType: " + task.type + 
-                        "\nAge: " + str((self.time - task.modules.archive.get("General", "Founded")).toyears()) + " yrs" +
-                        "\nFounded: " + task.modules.archive.get("General", "Founded").getdate() + 
-                        "\nTotal sold: " + str(task.modules.archive.get("Finance", "Total Sold"))
-                    )
+                if isinstance(task, Factory) and task.name == self.window.FactorySelectorVar.get():
+                    self.update_factory(task)
                     break
-
-            self.window.lblFactoryInfo.config(text=info)
 
             # Check for unfreezing interval
             if self.freeze_duration > -1 and time.time() - self.freeze_start > self.freeze_duration:
                 self.freeze_start = -1
                 self.freeze_duration = -1
                 self.command_resume(self, [])
+    
+    # Updates the factory tab
+    def update_factory(self, factory):
+        info = (
+            "Name: " + factory.name + 
+            "\nType: " + factory.type + 
+            "\nAge: " + str((self.time - factory.modules.archive.get("General", "Founded")).toyears()) + " yrs" +
+            "\nFounded: " + factory.modules.archive.get("General", "Founded").getdate() + 
+            "\nTotal sold: " + str(factory.modules.archive.get("Finance", "Total Sold"))
+        )
+        if self.prev['info'] != info:
+            self.window.lblFactoryInfo.config(text=info)
+            self.prev['info'] = info
+        
+        # Collect the modules
+        selected = "__NONE"
+        for i in self.window.list_modules.curselection():
+            selected = self.window.list_modules.get(i)
+        self.window.list_modules.delete(0,tk.END)
+        for m in factory.modules:
+            self.window.list_modules.insert(tk.END, m.name)
+        # Restore the selected
+        if selected in self.window.list_modules.get(0,tk.END):
+            index = self.window.list_modules.get(0,tk.END).index(selected)
+            self.window.list_modules.selection_set(index)
+
+        # According to the selected module, select the workers
+        workers = [w.name for w in factory.modules.hr.get_workers(module=selected)]
+        selected = "__NONE"
+        for i in self.window.list_modules.curselection():
+            selected = self.window.list_modules.get(i)
+        self.window.list_workers.delete(0,tk.END)
+        for w in workers:
+            self.window.list_workers.insert(tk.END, w)
+        # Restore the selected
+        if selected in self.window.list_workers.get(0,tk.END):
+            index = self.window.list_workers.get(0,tk.END).index(selected)
+            self.window.list_workers.selection_set(index)
+        
 
     # Prints on the command
     def print(self, text, end="\n"):
@@ -290,6 +322,15 @@ class Window ():
 
         self.lblFactoryInfo = tk.Label(self.boxFactoryInfo, text="", justify=tk.LEFT)
         self.lblFactoryInfo.pack(side=tk.LEFT)
+
+        self.lblModuleInfo = tk.LabelFrame(self.tab_factory,text="Modules")
+        self.lblModuleInfo.grid(padx=10,pady=10,row=2,column=0,columnspan=2,sticky=tk.N+tk.E+tk.S+tk.W)
+
+        self.list_modules = tk.Listbox(self.lblModuleInfo, exportselection=False)
+        self.list_modules.grid(padx=10,pady=10,row=0,column=0,sticky=tk.N+tk.S+tk.W+tk.E)
+
+        self.list_workers = tk.Listbox(self.lblModuleInfo, exportselection=False)
+        self.list_workers.grid(padx=10,pady=10,row=0,column=2,sticky=tk.N+tk.S+tk.W+tk.E)
 
         self.tab_factory.columnconfigure(1, weight=1)
         self.tab_factory.rowconfigure(2, weight=1)
