@@ -90,7 +90,7 @@ class Storage ():
         print("-" * 50)
 
 class Module ():
-    def __init__(self, name, cost, positions, modules, time, construction_time):
+    def __init__(self, name, cost, positions, factory_name, modules, time, construction_time):
         if name == type:
             print("Name of module cannot equal it's type")
             return
@@ -102,11 +102,17 @@ class Module ():
         self.positions = positions
         self.work_done = 0
         self.archive = {}
+        self.factory_name = factory_name
 
     def do_work (self, workers):
         for w in workers:
             # Get the workload
             self.work_done += w.work()
+    
+    def log (self, text, end="\n"):
+        if type(text) != str:
+            text = str(text)
+        Tools.CONSOLE.print("[" + self.factory_name + "] " + text, end=end)
 
 # ADMINISTRATIVE MODULES
 
@@ -114,14 +120,14 @@ class Module ():
 class Office (Module):
     type = "office"
 
-    def __init__(self, budget, market, modules, time):
+    def __init__(self, budget, market, factory_name, modules, time):
         super().__init__("Headquarters (HQ)", 0, [Position(
             name="CEO",
             workload=2,
             salary=100,
             schedule=[ 9, 17 ],
             education_level = 3
-        )], modules, time, Date(0,0,0,0))
+        )], factory_name, modules, time, Date(0,0,0,0))
 
         self.budget = budget
         self.market = market
@@ -196,7 +202,7 @@ class Research (Module):
 class HumanResources (Module):
     type = "human_resources"
 
-    def __init__(self, modules, time):
+    def __init__(self, factory_name, modules, time):
         worker_position = Position(
             name="Travel Agent",
             workload=1,
@@ -204,7 +210,7 @@ class HumanResources (Module):
             schedule=[ 9, 17 ],
             education_level = 1
         )
-        super().__init__("Human Resources (HR)", 0, [worker_position for i in range(5)], modules, time, Date(0,0,0,0))
+        super().__init__("Human Resources (HR)", 0, [worker_position for i in range(5)], factory_name, modules, time, Date(0,0,0,0))
         self.workers = []
 
         # Initialise the archive
@@ -269,7 +275,7 @@ class HumanResources (Module):
                         if len(available_workers) == 0:
                             # Stop because there are no more workers left
                             break
-                        print("(" + str(self.time) + ") Hired " + w.name + " to work in " + m.name + " as " + p.name)
+                        self.log("Hired " + w.name + " to work in " + m.name + " as " + p.name)
                 if m != self and self.work_done - 1 <= 0:
                     # Stop because all the work that can be done is done (HumanResources is free)
                     break
@@ -340,14 +346,14 @@ class HumanResources (Module):
 class Logistics (Module):
     type = "logistics"
 
-    def __init__(self, modules, time):
+    def __init__(self, factory_name, modules, time):
         super().__init__("Logistics", 0, [ Position(
             name = "Manager",
             workload = 2,
             salary = 300,
             schedule = [ 9, 17 ],
             education_level = 1
-        ) ], modules, time, Date(0,0,0,0))
+        ) ], factory_name, modules, time, Date(0,0,0,0))
         # Add some additional positions
         for _ in range(10):
             self.positions.append(Position(
@@ -486,14 +492,14 @@ class Logistics (Module):
 class Depot (Module):
     type = "depot"
 
-    def __init__(self, modules, time):
+    def __init__(self, factory_name, modules, time):
         super().__init__("Depot", 0, [ Position(
             name="Truck Driver",
             workload = 2,
             salary = 300,
             schedule = [ 9, 17 ],
             education_level = 1
-        ) for i in range(10)], modules, time, Date(0,0,0,0))
+        ) for i in range(10)], factory_name, modules, time, Date(0,0,0,0))
 
         # Init the storage
         self.storage = Storage(max=float('inf'))
@@ -538,14 +544,14 @@ class Depot (Module):
 class Archive (Module):
     type = "archive"
 
-    def __init__(self, modules, time):
+    def __init__(self, factory_name, modules, time):
         super().__init__("Archive", 0, [Position(
             name="Clerk",
             workload=0,
             salary=500,
             schedule=[9,17],
             education_level=2
-        ) for _ in range(5)], modules, time, Date(0,0,0,0))
+        ) for _ in range(5)], factory_name, modules, time, Date(0,0,0,0))
 
         # Init the __cabinets list
         self.__cabinets = {}
@@ -692,7 +698,7 @@ class SimpleProcessingUnit (Module):
             salary = 1,
             schedule = [ 6, 18 ],
             education_level = 1
-        ) for i in range(10)], [], Date(0, 0, 0, 1970), Date(0,0,0,0))
+        ) for i in range(10)], "", [], Date(0, 0, 0, 1970), Date(0,0,0,0))
 
         self.storage = Storage(max=2500)
         self.storage.add_rule("wheat", Storage.Rule('Wheat', target_stored = "[max]", flow = Storage.Rule.In, target_modules = [ "depot" ], anti_target_modules = []))
