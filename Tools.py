@@ -198,6 +198,31 @@ class Date ():
     def gettime(self):
         return "{:02d}:00:00".format(self.hour)
 
+    # Return a random date
+    # The ranges are including on both the min and the max
+    @staticmethod
+    def random_date (day_range=(0, Date.DAYS_PER_MONTH), month_range=(0,Date.MONTHS_PER_YEAR), year_range=(1900,2000)):
+        # Check if they're in the valid ranges
+        if day_range[0] < 0 or day_range[1] > Date.DAYS_PER_MONTH:
+            raise ValueError("Day range must be in the range 0 <= day <= {}".format(Date.DAYS_PER_MONTH))
+        if month_range[0] < 0 or month_range[1] > Date.MONTHS_PER_YEAR:
+            raise ValueError("Month range must be in the range 0 <= month <= {}".format(Date.MONTHS_PER_YEAR))
+        if year_range[0] < 0:
+            raise ValueError("Year range must be in the range 0 <= year")
+        # Check if the ranges don't cross
+        if day_range[0] > day_range[1]:
+            raise ValueError("First element of day range must be smaller or equal to it's second element")
+        if month_range[0] > month_range[1]:
+            raise ValueError("First element of month range must be smaller or equal to it's second element")
+        if year_range[0] > year_range[1]:
+            raise ValueError("First element of year range must be smaller or equal to it's second element")
+        # Valid input, compute averages
+        day = random.randint(day_range[0], day_range[1])
+        month = random.randint(month_range[0], month_range[1])
+        year = random.randint(year_range[0],year_range[1])
+        # Create the element
+        return Date(0, day, month, year)
+
 # Class representing the Position a worker can work in
 class Position ():
     def __init__(self, name="", workload=0, salary=0, schedule = [0, 0], education_level=0):
