@@ -201,7 +201,12 @@ class Date ():
     # Return a random date
     # The ranges are including on both the min and the max
     @staticmethod
-    def random_date (day_range=(0, Date.DAYS_PER_MONTH), month_range=(0,Date.MONTHS_PER_YEAR), year_range=(1900,2000)):
+    def random_date (day_range=(0, "@max"), month_range=(0, "@max"), year_range=(1900,2000)):
+        # Convert the '@max' to actual numbers
+        if day_range[1] == "@max":
+            day_range = (day_range[0], Date.DAYS_PER_MONTH)
+        if month_range[1] == "@max":
+            month_range = (month_range[0], Date.MONTHS_PER_YEAR)
         # Check if they're in the valid ranges
         if day_range[0] < 0 or day_range[1] > Date.DAYS_PER_MONTH:
             raise ValueError("Day range must be in the range 0 <= day <= {}".format(Date.DAYS_PER_MONTH))
@@ -242,12 +247,13 @@ class Worker ():
             self.base_energy = base_energy if base_energy != "@rnd" else random.randint(150,200)
             self.experience = 0
 
-    def __init__(self, name="@rnd", age="@rnd", stats="@rnd"):
+    def __init__(self, time, name="@rnd", age="@rnd", stats="@rnd"):
         if name == "@rnd":
             rnd_i = random.randint(0,len(NAMES['FirstName'])-1)
             name = NAMES['FirstName'][rnd_i] + " " + NAMES['LastName'][rnd_i]
         self.name = name
         self.age = age if age != "@rnd" else random.randint(18,67)
+        self.b_day = Date.random_date(year_range=(time.toyears() - self.age, time.toyears() - self.age))
         self.stats = stats if stats != "@rnd" else Worker.Stats()
         self.energy = self.stats.base_energy
         self.on_duty = False
@@ -256,7 +262,7 @@ class Worker ():
         # Prepare some standard initialisations
         self.module = "__EMPTY"
         self.position = Position()
-        self.started = Date(0, 0, 0, 1970)
+        self.started = time.now()
         self.perfect = -1
         self.salary = -1
 
