@@ -63,20 +63,22 @@ class Factory ():
             # Update construction
             self.modules.construct()
 
+            # Check if any workers grew older
+            for w in self.modules.hr.workers:
+                if w.b_day.day == self.time.day and w.b_day.month == self.time.month:
+                    w.celebrate_birthday()
+
         if 'months' in ticked:
             # A month ended
 
             # Fire, hire and pay new and / or old workers
-            self.modules.hr.manage_workers([Worker() for i in range(10)])
+            self.modules.hr.manage_workers([Worker(self.time) for i in range(10)])
 
             # Do the production chain evaluation
             self.modules.office.evaluate()
         if 'years' in ticked:
             # A year ended
-
-            # Age up workers
-            for w in self.modules.hr.workers:
-                w.celebrate_birthday()
+            pass
         
         # Call archive managers
         self.modules.archive.manage(ticked)
