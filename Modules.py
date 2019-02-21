@@ -101,7 +101,7 @@ class Module ():
         self.construction_time = construction_time
         self.positions = positions
         self.work_done = 0
-        self.archive = {}
+        self.founded = self.time.now()
         self.factory_name = factory_name
 
     def do_work (self, workers):
@@ -332,6 +332,14 @@ class HumanResources (Module):
             'reason' : reason
         })
         self.modules.archive.update("Workers", "Fired", 1)
+
+    # Returns worker with given name
+    def get_worker(self, name):
+        # Loop through the workers
+        for w in self.workers:
+            if w.name == name:
+                return w
+        return None
 
     # Returns all workers working in a specific model and / or position
     def get_workers(self, module="*", position="*"):
