@@ -161,30 +161,65 @@ class WorldUpdater (threading.Thread):
             self.prev['info'] = info
         
         # Collect the modules
+        modules = [m.name for m in factory.modules]
         selected = "__NONE"
         for i in self.window.list_modules.curselection():
-            selected = self.window.list_modules.get(i)
-        self.window.list_modules.delete(0,tk.END)
-        for m in factory.modules:
-            self.window.list_modules.insert(tk.END, m.name)
-        # Restore the selected
-        if selected in self.window.list_modules.get(0,tk.END):
-            index = self.window.list_modules.get(0,tk.END).index(selected)
-            self.window.list_modules.selection_set(index)
+                selected = self.window.list_modules.get(i)
+        if hash(tuple(modules)) != self.prev['modules_hash']:
+            self.prev['modules_hash'] = hash(tuple(modules))
+            self.window.list_modules.delete(0,tk.END)
+            for m in modules:
+                self.window.list_modules.insert(tk.END, m)
+            # Restore the selected
+            if selected in self.window.list_modules.get(0,tk.END):
+                index = self.window.list_modules.get(0,tk.END).index(selected)
+                self.window.list_modules.selection_set(index)
+        
+        # Do the module info
+        info = "Name: \nType: \nWorkers: \nConstructed: \nAge: "
+        if selected in factory.modules:
+            # Get module info
+            module = factory.modules[selected]
+            info = (
+                "Name: " + module.name +
+                "\nType: " + module.type +
+                "\nWorkers: " + str(len(factory.modules.hr.get_workers(module=module.name))) +
+                "\nConstructed: " + module.founded.getdate() + 
+                "\nAge: " + str(self.time.toyears() - module.founded.toyears())
+            )
+        if self.prev['modules_info'] != info:
+            self.prev['modules_info'] = info
+            self.window.lblModuleInfo.config(text=info)
 
         # According to the selected module, select the workers
         workers = [w.name for w in factory.modules.hr.get_workers(module=selected)]
         selected = "__NONE"
-        for i in self.window.list_modules.curselection():
-            selected = self.window.list_modules.get(i)
-        self.window.list_workers.delete(0,tk.END)
-        for w in workers:
-            self.window.list_workers.insert(tk.END, w)
-        # Restore the selected
-        if selected in self.window.list_workers.get(0,tk.END):
-            index = self.window.list_workers.get(0,tk.END).index(selected)
-            self.window.list_workers.selection_set(index)
+        for i in self.window.list_workers.curselection():
+            selected = self.window.list_workers.get(i)
+        if hash(tuple(workers)) != self.prev['worker_hash']:
+            self.prev['worker_hash'] = hash(tuple(workers))
+            self.window.list_workers.delete(0,tk.END)
+            for w in workers:
+                self.window.list_workers.insert(tk.END, w)
+            # Restore the selected
+            if selected in self.window.list_workers.get(0,tk.END):
+                index = self.window.list_workers.get(0,tk.END).index(selected)
+                self.window.list_workers.selection_set(index)
         
+        # Do the worker info
+        info = "Name: \nAge: \nPosition: \nSalary: \nHired: "
+        if selected in workers:
+            worker = factory.modules.hr.get_worker(selected)
+            info = (
+                "Name: " + worker.name + 
+                "\nAge: " + str(worker.age) + 
+                "\nPosition: " + worker.position.name + 
+                "\nSalary: " + str(worker.salary) + 
+                "\nHired: " + worker.started.getdate()
+            )
+        if self.prev['workers_info'] != info:
+            self.prev['workers_info'] = info
+            self.window.lblWorkerInfo.config(text=info)
 
     # Prints on the command
     def print(self, text, end="\n"):
@@ -323,14 +358,20 @@ class Window ():
         self.lblFactoryInfo = tk.Label(self.boxFactoryInfo, text="", justify=tk.LEFT)
         self.lblFactoryInfo.pack(side=tk.LEFT)
 
-        self.lblModuleInfo = tk.LabelFrame(self.tab_factory,text="Modules")
-        self.lblModuleInfo.grid(padx=10,pady=10,row=2,column=0,columnspan=2,sticky=tk.N+tk.E+tk.S+tk.W)
+        self.boxModuleInfo = tk.LabelFrame(self.tab_factory,text="Modules")
+        self.boxModuleInfo.grid(padx=10,pady=10,row=2,column=0,columnspan=2,sticky=tk.N+tk.E+tk.S+tk.W)
 
-        self.list_modules = tk.Listbox(self.lblModuleInfo, exportselection=False)
+        self.list_modules = tk.Listbox(self.boxModuleInfo, exportselection=False)
         self.list_modules.grid(padx=10,pady=10,row=0,column=0,sticky=tk.N+tk.S+tk.W+tk.E)
 
-        self.list_workers = tk.Listbox(self.lblModuleInfo, exportselection=False)
+        self.lblModuleInfo = tk.Label(self.boxModuleInfo, text="", justify=tk.LEFT)
+        self.lblModuleInfo.grid(padx=10,pady=10,row=0,column=1, sticky=tk.N+tk.W)
+
+        self.list_workers = tk.Listbox(self.boxModuleInfo, exportselection=False)
         self.list_workers.grid(padx=10,pady=10,row=0,column=2,sticky=tk.N+tk.S+tk.W+tk.E)
+
+        self.lblWorkerInfo = tk.Label(self.boxModuleInfo, text="", justify=tk.LEFT)
+        self.lblWorkerInfo.grid(padx=10,pady=10,row=0,column=3, sticky=tk.N+tk.W)
 
         self.tab_factory.columnconfigure(1, weight=1)
         self.tab_factory.rowconfigure(2, weight=1)
