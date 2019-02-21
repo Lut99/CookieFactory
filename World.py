@@ -121,9 +121,12 @@ class WorldUpdater (threading.Thread):
             # Update console
             self.print(Tools.CONSOLE.flush(), end="")
 
+            # Update the general time
+            self.window.lblTitleTime.config(text=self.time.getdate())
+
             # Update overview tab
             self.window.lblTime.config(text="Current time: " + str(self.time.gettime()))
-            self.window.lblDate.config(text="Current data: " + str(self.time.getdate()))
+            self.window.lblDate.config(text="Current date: " + str(self.time.getdate()))
             self.last_draw += self.draw_interval
 
             # Update factory tab
@@ -213,6 +216,7 @@ class WorldUpdater (threading.Thread):
             info = (
                 "Name: " + worker.name + 
                 "\nAge: " + str(worker.age) + 
+                "\nBirthday: " + worker.b_day.getdate() + 
                 "\nPosition: " + worker.position.name + 
                 "\nSalary: " + str(worker.salary) + 
                 "\nHired: " + worker.started.getdate()
@@ -309,10 +313,16 @@ class Window ():
         self.tab_factory = tk.Frame(self.notebook)
         self.tab_options = tk.Frame(self.notebook)
 
+        # Do the title
         self.lblTitle = tk.Label(self.root, text="Factory Simulator", anchor="c")
         self.lblTitle.config(font=("Helvetica",36))
         self.lblTitle.config(background="gray91")
         self.lblTitle.grid(padx=0,pady=0,column=0,row=0,sticky=tk.W+tk.E)
+        # Do the general time
+        self.lblTitleTime = tk.Label(self.root, text="XX/XX/XXXX", anchor="c")
+        self.lblTitleTime.config(font=("Helvetica",18))
+        self.lblTitleTime.config(background="gray91")
+        self.lblTitleTime.grid(padx=0,pady=0,column=0,row=1,sticky=tk.W+tk.E)
 
         # Add tab stuff
 
@@ -390,13 +400,13 @@ class Window ():
         print("  Finilising notebook...")
         self.notebook.select(self.tab_overview)
         self.notebook.enable_traversal()
-        self.notebook.grid(row=1, column=0, columnspan=3, sticky=tk.N+tk.E+tk.W+tk.S)
+        self.notebook.grid(row=2, column=0, columnspan=3, sticky=tk.N+tk.E+tk.W+tk.S)
 
         self.notebook.rowconfigure(0, weight=1)
         self.notebook.columnconfigure(0, weight=1)
 
         print("  Finilising window...")
-        self.root.rowconfigure(1, weight=1)
+        self.root.rowconfigure(2, weight=1)
         self.root.columnconfigure(0, weight=1)
         self.root.bind("<Return>", self.buttonClick)
 
