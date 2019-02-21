@@ -36,26 +36,29 @@ class Date ():
         10 : "November",
         11 : "December"
     }
+    HOURS_PER_DAY = 24
+    DAYS_PER_MONTH = 30
+    MONTHS_PER_YEAR = 12
 
     def __init__(self, hour=0, day=0, month=0, year=0):
         # Fix the values (if needed)
-        while hour >= 24:
-            hour -= 24
+        while hour >= self.HOURS_PER_DAY:
+            hour -= self.HOURS_PER_DAY
             day += 1
-        while day >= 30:
-            day -= 30
+        while day >= self.DAYS_PER_MONTH:
+            day -= self.DAYS_PER_MONTH
             month += 1
-        while month >= 12:
-            month -= 12
+        while month >= self.MONTHS_PER_YEAR:
+            month -= self.MONTHS_PER_YEAR
             year += 1
         while hour < 0:
-            hour += 24
+            hour += self.HOURS_PER_DAY
             day -= 1
         while day < 0:
-            day += 30
+            day += self.DAYS_PER_MONTH
             month -= 1
         while month < 0:
-            month += 12
+            month += self.MONTHS_PER_YEAR
             year -= 1
 
         self.hour = hour
@@ -110,14 +113,14 @@ class Date ():
         day = self.day + other.day
         month = self.month + other.month
         year = self.year + other.year
-        while hour >= 24:
-            hour -= 24
+        while hour >= self.HOURS_PER_DAY:
+            hour -= self.HOURS_PER_DAY
             day += 1
-        while day >= 30:
-            day -= 30
+        while day >= self.DAYS_PER_MONTH:
+            day -= self.DAYS_PER_MONTH
             month += 1
-        while month >= 12:
-            month -= 12
+        while month >= self.MONTHS_PER_YEAR:
+            month -= self.MONTHS_PER_YEAR
             year += 1
         return Date(hour=hour,day=day,month=month,year=year)
     # - handler
@@ -127,13 +130,13 @@ class Date ():
         month = self.month - other.month
         year = self.year - other.year
         while hour < 0:
-            hour += 24
+            hour += self.HOURS_PER_DAY
             day -= 1
         while day < 0:
-            day += 30
+            day += self.DAYS_PER_MONTH
             month -= 1
         while month < 0:
-            month += 12
+            month += self.MONTHS_PER_YEAR
             year -= 1
         return Date(hour=hour,day=day,month=month,year=year)
 
@@ -141,16 +144,16 @@ class Date ():
     def tick (self, hours=1):
         to_return = [ 'hours' ]
         self.hour += hours
-        while self.hour >= 24:
-            self.hour -= 24
+        while self.hour >= self.HOURS_PER_DAY:
+            self.hour -= self.HOURS_PER_DAY
             self.day += 1
             if 'days' not in to_return: to_return.append('days')
-        while self.day >= 30:
-            self.day -= 30
+        while self.day >= self.DAYS_PER_MONTH:
+            self.day -= self.DAYS_PER_MONTH
             self.month += 1
             if 'months' not in to_return: to_return.append('months')
-        while self.month >= 12:
-            self.month -= 12
+        while self.month >= self.MONTHS_PER_YEAR:
+            self.month -= self.MONTHS_PER_YEAR
             self.year += 1
             if 'years' not in to_return: to_return.append('years')
         return to_return
@@ -162,22 +165,22 @@ class Date ():
     # Get the total number hours
     def tohours (self):
         hours = self.hour
-        hours += self.day * 24
-        hours += self.month * 30 * 24
-        hours += self.year * 12 * 30 * 24
+        hours += self.day * self.HOURS_PER_DAY
+        hours += self.month * self.DAYS_PER_MONTH * self.HOURS_PER_DAY
+        hours += self.year * self.MONTHS_PER_YEAR * self.DAYS_PER_MONTH * self.HOURS_PER_DAY
         return hours
     # Get the total number days
     def todays (self, ceiling=False):
         days = self.day
-        days += self.month * 30
-        days += self.year * 12 * 30
+        days += self.month * self.DAYS_PER_MONTH
+        days += self.year * self.MONTHS_PER_YEAR * self.DAYS_PER_MONTH
         if ceiling:
             days += (1 if self.hour > 0 else 0)
         return days
     # Get the total number months
     def tomonths(self, ceiling=False):
         month = self.month
-        month += self.year * 12
+        month += self.year * self.MONTHS_PER_YEAR
         if ceiling:
             month += (1 if self.hour > 0 or self.day > 0 else 0)
         return month
