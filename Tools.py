@@ -55,29 +55,12 @@ class Date ():
 
     def __init__(self, hour=0, day=0, month=0, year=0):
         # Fix the values (if needed)
-        while hour >= self.HOURS_PER_DAY:
-            hour -= self.HOURS_PER_DAY
-            day += 1
-        while day >= self.DAYS_PER_MONTH[month]:
-            day -= self.DAYS_PER_MONTH[month]
-            month += 1
-        while month >= self.MONTHS_PER_YEAR:
-            month -= self.MONTHS_PER_YEAR
-            year += 1
-        while hour < 0:
-            hour += self.HOURS_PER_DAY
-            day -= 1
-        while day < 0:
-            day += self.DAYS_PER_MONTH[month]
-            month -= 1
-        while month < 0:
-            month += self.MONTHS_PER_YEAR
-            year -= 1
-
-        self.hour = hour
-        self.day = day
-        self.month = month
-        self.year = year
+        self.hour, self.day, self.month, self.year = Date.even(
+            hour,
+            day,
+            month,
+            year
+        )
 
     # str() handler
     def __str__(self):
@@ -122,53 +105,36 @@ class Date ():
         return not self.__eq__(other)
     # + handler
     def __add__(self, other):
-        hour = self.hour + other.hour
-        day = self.day + other.day
-        month = self.month + other.month
-        year = self.year + other.year
-        while hour >= self.HOURS_PER_DAY:
-            hour -= self.HOURS_PER_DAY
-            day += 1
-        while day >= self.DAYS_PER_MONTH[month]:
-            day -= self.DAYS_PER_MONTH[month]
-            month += 1
-        while month >= self.MONTHS_PER_YEAR:
-            month -= self.MONTHS_PER_YEAR
-            year += 1
+        hour, day, month, year = Date.even(
+            self.hour + other.hour,
+            self.day + other.day,
+            self.month + other.month,
+            self.year + other.year
+        )
         return Date(hour=hour,day=day,month=month,year=year)
     # - handler
     def __sub__(self, other):
-        hour = self.hour - other.hour
-        day = self.day - other.day
-        month = self.month - other.month
-        year = self.year - other.year
-        while hour < 0:
-            hour += self.HOURS_PER_DAY
-            day -= 1
-        while day < 0:
-            day += self.DAYS_PER_MONTH[month]
-            month -= 1
-        while month < 0:
-            month += self.MONTHS_PER_YEAR
-            year -= 1
+        hour, day, month, year = Date.even(
+            self.hour - other.hour,
+            self.day - other.day,
+            self.month - other.month,
+            self.year - other.year
+        )
         return Date(hour=hour,day=day,month=month,year=year)
 
     # Advances time by x hours
     def tick (self, hours=1):
         to_return = [ 'hours' ]
-        self.hour += hours
-        while self.hour >= self.HOURS_PER_DAY:
-            self.hour -= self.HOURS_PER_DAY
-            self.day += 1
-            if 'days' not in to_return: to_return.append('days')
-        while self.day >= self.DAYS_PER_MONTH[self.month]:
-            self.day -= self.DAYS_PER_MONTH[self.month]
-            self.month += 1
-            if 'months' not in to_return: to_return.append('months')
-        while self.month >= self.MONTHS_PER_YEAR:
-            self.month -= self.MONTHS_PER_YEAR
-            self.year += 1
-            if 'years' not in to_return: to_return.append('years')
+        prev_day, prev_month, prev_year = self.day, self.month, self.year
+        self.hour, self.day, self.month, self.year = Date.even(
+            self.hour + 1,
+            self.day,
+            self.month,
+            self.year
+        )
+        if prev_day != self.day: to_return.append('days')
+        if prev_month != self.month: to_return.append('months')
+        if prev_year != self.year: to_return.append('years')
         return to_return
 
     # Return a copy of itself
@@ -251,11 +217,56 @@ class Date ():
         day = random.randint(day_range[0], day_range[1])
         month = random.randint(month_range[0], month_range[1])
         year = random.randint(year_range[0],year_range[1])
-        # Make sure the day's still within bounds
-        if day > Date.DAYS_PER_MONTH[month]:
-            day = Date.DAYS_PER_MONTH[month]
+        # Let's even it to make sure
+        _, day, month, year = Date.even(0, day, month, year)
         # Create the element
         return Date(0, day, month, year)
+
+    # Returns hours, days, months and years but evened
+    @staticmethod
+    def even (hours, days, months, years):
+        HOURS_PER_YEAR = sum(Date.DAYS_PER_MONTH.values()) * Date.HOURS_PER_DAY
+
+        # First: pad years to everything until all is positive
+        pad_years = 0
+        while hours < 0:
+            hours += HOURS_PER_YEAR
+            pad_years += 1
+        while days < 0:
+            days += sum(Date.DAYS_PER_MONTH.values())
+            pad_years += 1
+        while months < 0:
+            months += Date.MONTHS_PER_YEAR
+            pad_years += 1
+        while years < 0:
+            years += 1
+            pad_years += 1
+
+        # Then, compute the total no. of hours...
+        total_hours = hours
+        # ...by addings days...
+        total_hours += days * Date.HOURS_PER_DAY
+        # ...months...
+        total_hours += int(months / 12) * HOURS_PER_YEAR
+        total_hours += Date.DAYS_PER_MONTH[months % 12] * Date.HOURS_PER_DAY
+        # ...and years
+        total_hours += years * HOURS_PER_YEAR
+
+        # Compute new hours, days, months and years values
+        years = int(total_hours / HOURS_PER_YEAR)
+        total_hours = total_hours % HOURS_PER_YEAR
+        # Determining the correct month is slightly more tricky
+        months = 0
+        while int(total_hours / Date.HOURS_PER_DAY) > Date.DAYS_PER_MONTH[months]:
+            months += 1
+            total_hours -= Date.DAYS_PER_MONTH[months] * Date.HOURS_PER_DAY
+        # Days & hours are easy again
+        days = int(total_hours / Date.HOURS_PER_DAY)
+        hours = total_hours % Date.HOURS_PER_DAY
+        # Finally, snoop all the pad years from the years again
+        years -= pad_years
+        # Return
+        return hours, days, months, years
 
 # Class representing the Position a worker can work in
 class Position ():
