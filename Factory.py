@@ -5,6 +5,10 @@
 # A simulation of a cookie factory.
 # For a detailed explaination and changelog, see cookie_factory_doc.txt
 
+# TODO:
+#  - Finish depochify in Date class (Tools)
+# See 'README.md' for the Roadmap for bigger stages in the upcoming development
+
 import time
 import Modules
 import numpy as np
