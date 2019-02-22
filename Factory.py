@@ -5,13 +5,6 @@
 # A simulation of a cookie factory.
 # For a detailed explaination and changelog, see cookie_factory_doc.txt
 
-# TODO:
-#  - Make interface interface
-#  - Add recipes and production chains (load done, add evaluation)
-#  - Overhaul the rapport generator to leave more of the generating to the
-#    modules, allowing easier rapport generating with variable modules
-#  - Add Storage, Mixer and Oven
-
 import time
 import Modules
 import numpy as np
