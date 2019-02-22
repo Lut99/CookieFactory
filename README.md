@@ -31,6 +31,30 @@
   - Changed Date() to work with epochs since 00:00:00 00/00/0000 to support
     correct days format
 
+# Roadmap
+<span style="color:blue">
+- v1.0.0: The Release
+  - Add Factory infrastructure (programatically, then)
+  - Add the basic Factory modules:
+    - Office
+    - Human Resources
+    - Logistics
+    - Depot
+    - Archive
+  - Add recipes & production chains
+  - Add UI
+</span>
+  - Finish the depochify() function of Date class
+  - Interface:
+    - Finish adding plots
+    - Add yearly news-paper ish event logs
+  - Add Storage, Mixer and Oven
+  - Add automizing production chains
+
+- vX.0.0: The Visual Update
+  - Interface:
+    - Add LAYOUT OF THE FACTORY???
+
 # The Products
 
 # The Factory Process
