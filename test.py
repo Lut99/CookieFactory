@@ -1,9 +1,10 @@
 from Tools import Date
 import time
 
-d = Date(22, 22, 2, 2019)
+d = Date(0, 0, 0, 0)
+print(d)
 
 for i in range(50):
-    d.tick(24)
-    print(d)
+    ticked = d.tick(24)
+    print(str(d) + " (ticked: " + ', '.join(ticked) + ")")
     time.sleep(.1)
