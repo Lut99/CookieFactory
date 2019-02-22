@@ -98,7 +98,7 @@ process, regardless of the actual product(s) the factory makes:
   factory. In fact, it can be seen as an extension to the Logistics module. The
   Depot is the link between the Factory and the outside world regarding
   resources. The Factory can sell or buy resources through this way.
-- Archive:
+- Archive:  
   Module that has a somewhat more abstract influence on the Factory process.
   Keeps track of all stats across the factory, to allow for decision-making and,
   maybe even more important, visualising the Factory's day-to-day process.
