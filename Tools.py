@@ -53,105 +53,72 @@ class Date ():
     }
     MONTHS_PER_YEAR = 12
 
-    def __init__(self, hour=0, day=0, month=0, year=0):
-        # Fix the values (if needed)
-        self.hour, self.day, self.month, self.year = Date.even(
-            hour,
-            day,
-            month,
-            year
-        )
+    def __init__(self, hour=0, day=0, month=0, year=0, epoch=0):
+        self.epoch = epoch
+        # Add the hour, day, month and year
+        self.epoch += Date.epochify(hour, day, month, year)
+        # Check if valid
+        if self.epoch < 0:
+            raise ValueError("Time cannot be lower than The Beginning (00:00:00 00/00/0000)")
+        # Update the hour etc. as well
+        self.hour, self.day, self.month, self.year = Date.depochify(self.epoch)
 
     # str() handler
     def __str__(self):
         return "{:02d}:00:00 {:02d}/{:02d}/{:04d}".format(self.hour, self.day + 1, self.month + 1, self.year)
     # <= handler
     def __le__(self, other):
-        self_stuff = [self.year, self.month, self.day, self.hour]
-        other_stuff = [other.year, other.month, other.day, other.hour]
-        for i in range(len(self_stuff)):
-            if self_stuff[i] < other_stuff[i]: return True
-            elif self_stuff[i] > other_stuff[i]: return False
-        return True
+        return self.epoch <= other.epoch
     # < handler
     def __lt__(self, other):
-        self_stuff = [self.year, self.month, self.day, self.hour]
-        other_stuff = [other.year, other.month, other.day, other.hour]
-        for i in range(len(self_stuff)):
-            if self_stuff[i] < other_stuff[i]: return True
-            elif self_stuff[i] > other_stuff[i]: return False
-        return False
+        return self.epoch < other.epoch
     # >= handler
     def __ge__(self, other):
-        self_stuff = [self.year, self.month, self.day, self.hour]
-        other_stuff = [other.year, other.month, other.day, other.hour]
-        for i in range(len(self_stuff)):
-            if self_stuff[i] < other_stuff[i]: return False
-            elif self_stuff[i] > other_stuff[i]: return True
-        return True
+        return self.epoch >= other.epoch
     # > handler
     def __gt__(self, other):
-        self_stuff = [self.year, self.month, self.day, self.hour]
-        other_stuff = [other.year, other.month, other.day, other.hour]
-        for i in range(len(self_stuff)):
-            if self_stuff[i] < other_stuff[i]: return False
-            elif self_stuff[i] > other_stuff[i]: return True
-        return False
+        return self.epoch > other.epoch
     # == handler
     def __eq__(self, other):
-        return self.year == other.year and self.month == other.month and self.day == other.day and self.hour == other.hour
+        return self.epoch == other.epoch
     # != handler
     def __ne__(self, other):
         return not self.__eq__(other)
     # + handler
     def __add__(self, other):
-        hour, day, month, year = Date.even(
-            self.hour + other.hour,
-            self.day + other.day,
-            self.month + other.month,
-            self.year + other.year
-        )
-        return Date(hour=hour,day=day,month=month,year=year)
+        return Date(epoch=self.epoch + other.epoch)
     # - handler
     def __sub__(self, other):
-        hour, day, month, year = Date.even(
-            self.hour - other.hour,
-            self.day - other.day,
-            self.month - other.month,
-            self.year - other.year
-        )
-        return Date(hour=hour,day=day,month=month,year=year)
+        epoch = self.epoch - other.epoch
+        if epoch < 0:
+            raise ValueError("Time cannot be lower than The Beginning (00:00:00 00/00/0000)")
+        return Date(epoch=epoch)
 
     # Advances time by x hours
     def tick (self, hours=1):
-        to_return = [ 'hours' ]
-        prev_day, prev_month, prev_year = self.day, self.month, self.year
-        self.hour, self.day, self.month, self.year = Date.even(
-            self.hour + 1,
-            self.day,
-            self.month,
-            self.year
-        )
-        if prev_day != self.day: to_return.append('days')
-        if prev_month != self.month: to_return.append('months')
-        if prev_year != self.year: to_return.append('years')
-        return to_return
+        # Save the current date for the ticked
+        prev_hour, prev_day, prev_month, prev_year = self.hour, self.day, self.month, self.year
+        # Increment
+        self.epoch += hours
+        # Update the other values
+        self.hour, self.day, self.month, self.year = Date.depochify(self.epoch)
+        # Assemble the ticked
+        ticked = []
+        if prev_hour != self.hour: ticked.append('hours')
+        if prev_day != self.day: ticked.append('days')
+        if prev_month != self.month: ticked.append('months')
+        if prev_year != self.year: ticked.append('years')
+        # Return
+        return ticked
 
     # Return a copy of itself
     def now (self):
-        return Date(hour=self.hour,day=self.day,month=self.month,year=self.year)
+        return Date(epoch=self.epoch)
 
     # Get the total number hours
     def tohours (self):
-        # Add the hours
-        hours = self.hour
-        # Add the days
-        hours += self.day * self.HOURS_PER_DAY
-        # Add the months
-        hours += sum([self.DAYS_PER_MONTH[month] for month in range(self.month)]) * self.HOURS_PER_DAY
-        # Add the years
-        hours += self.year * self.MONTHS_PER_YEAR * sum(self.DAYS_PER_MONTH.values()) * self.HOURS_PER_DAY
-        return hours
+        # Simply return the epoch
+        return self.epoch
     # Get the total number days
     def todays (self, ceiling=False):
         # Add the days
@@ -217,56 +184,49 @@ class Date ():
         day = random.randint(day_range[0], day_range[1])
         month = random.randint(month_range[0], month_range[1])
         year = random.randint(year_range[0],year_range[1])
-        # Let's even it to make sure
-        _, day, month, year = Date.even(0, day, month, year)
+        # Convert it to the epoch
+        epoch = Date.epochify(0, day, month, year)
         # Create the element
-        return Date(0, day, month, year)
-
-    # Returns hours, days, months and years but evened
+        return Date(epoch = epoch)
+    
+    # Converts hours, days, months and years to hours since epoch
     @staticmethod
-    def even (hours, days, months, years):
+    def epochify (hours, days, months, years):
+        DAYS_PER_YEAR = sum(Date.DAYS_PER_MONTH.values())
+
+        epoch = 0
+        # Add the hours
+        epoch += hours
+        # Add the days
+        epoch += days * Date.HOURS_PER_DAY
+        # Add the months
+        epoch += int(months / DAYS_PER_YEAR) * DAYS_PER_YEAR
+        epoch += sum([Date.DAYS_PER_MONTH[month] for month in range(months % DAYS_PER_YEAR)])
+        # Add the years
+        epoch += years * DAYS_PER_YEAR * Date.HOURS_PER_DAY
+
+        # Done
+        return epoch
+
+    # Converts hours since epoch to hours, days, months and years
+    @staticmethod
+    def depochify (epoch):
+        # First, take as many years as possible
         HOURS_PER_YEAR = sum(Date.DAYS_PER_MONTH.values()) * Date.HOURS_PER_DAY
-
-        # First: pad years to everything until all is positive
-        pad_years = 0
-        while hours < 0:
-            hours += HOURS_PER_YEAR
-            pad_years += 1
-        while days < 0:
-            days += sum(Date.DAYS_PER_MONTH.values())
-            pad_years += 1
-        while months < 0:
-            months += Date.MONTHS_PER_YEAR
-            pad_years += 1
-        while years < 0:
-            years += 1
-            pad_years += 1
-
-        # Then, compute the total no. of hours...
-        total_hours = hours
-        # ...by addings days...
-        total_hours += days * Date.HOURS_PER_DAY
-        # ...months...
-        total_hours += int(months / 12) * HOURS_PER_YEAR
-        total_hours += Date.DAYS_PER_MONTH[months % 12] * Date.HOURS_PER_DAY
-        # ...and years
-        total_hours += years * HOURS_PER_YEAR
-
-        # Compute new hours, days, months and years values
-        years = int(total_hours / HOURS_PER_YEAR)
-        total_hours = total_hours % HOURS_PER_YEAR
-        # Determining the correct month is slightly more tricky
+        years = int(epoch / HOURS_PER_YEAR)
+        epoch = epoch % HOURS_PER_YEAR
+        # Then, take the months
         months = 0
-        while int(total_hours / Date.HOURS_PER_DAY) > Date.DAYS_PER_MONTH[months]:
+        while int(epoch / Date.HOURS_PER_DAY) > Date.DAYS_PER_MONTH[months]:
             months += 1
-            total_hours -= Date.DAYS_PER_MONTH[months] * Date.HOURS_PER_DAY
-        # Days & hours are easy again
-        days = int(total_hours / Date.HOURS_PER_DAY)
-        hours = total_hours % Date.HOURS_PER_DAY
-        # Finally, snoop all the pad years from the years again
-        years -= pad_years
-        # Return
+            epoch -= Date.DAYS_PER_MONTH[months] * Date.HOURS_PER_DAY
+        # Take the days
+        days = int(epoch / Date.HOURS_PER_DAY)
+        # Finally, take the hours
+        hours = epoch % Date.HOURS_PER_DAY
+        # Done
         return hours, days, months, years
+    
 
 # Class representing the Position a worker can work in
 class Position ():
