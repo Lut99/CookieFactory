@@ -25,6 +25,11 @@
   - Added the ability to log on the interface console
   - Changed factory running forgo threading and instead
     work one-call-at-a-time related
+- v0.8.0 (alpha):
+  - Added plots to the interface
+  - Changed Date() to work with correct days per month (e.g., February has 28)
+  - Changed Date() to work with epochs since 00:00:00 00/00/0000 to support
+    correct days format
 
 # The Products
 
