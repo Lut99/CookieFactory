@@ -37,7 +37,20 @@ class Date ():
         11 : "December"
     }
     HOURS_PER_DAY = 24
-    DAYS_PER_MONTH = 30
+    DAYS_PER_MONTH = {
+        0 : 31,
+        1 : 28,
+        2 : 31,
+        3 : 30,
+        4 : 31,
+        5 : 31,
+        6 : 30,
+        7 : 31,
+        8 : 30,
+        9 : 31,
+        10 : 30,
+        11 : 31
+    }
     MONTHS_PER_YEAR = 12
 
     def __init__(self, hour=0, day=0, month=0, year=0):
@@ -45,8 +58,8 @@ class Date ():
         while hour >= self.HOURS_PER_DAY:
             hour -= self.HOURS_PER_DAY
             day += 1
-        while day >= self.DAYS_PER_MONTH:
-            day -= self.DAYS_PER_MONTH
+        while day >= self.DAYS_PER_MONTH[month]:
+            day -= self.DAYS_PER_MONTH[month]
             month += 1
         while month >= self.MONTHS_PER_YEAR:
             month -= self.MONTHS_PER_YEAR
@@ -55,7 +68,7 @@ class Date ():
             hour += self.HOURS_PER_DAY
             day -= 1
         while day < 0:
-            day += self.DAYS_PER_MONTH
+            day += self.DAYS_PER_MONTH[month]
             month -= 1
         while month < 0:
             month += self.MONTHS_PER_YEAR
@@ -148,8 +161,8 @@ class Date ():
             self.hour -= self.HOURS_PER_DAY
             self.day += 1
             if 'days' not in to_return: to_return.append('days')
-        while self.day >= self.DAYS_PER_MONTH:
-            self.day -= self.DAYS_PER_MONTH
+        while self.day >= self.DAYS_PER_MONTH[self.month]:
+            self.day -= self.DAYS_PER_MONTH[self.month]
             self.month += 1
             if 'months' not in to_return: to_return.append('months')
         while self.month >= self.MONTHS_PER_YEAR:
@@ -164,31 +177,44 @@ class Date ():
 
     # Get the total number hours
     def tohours (self):
+        # Add the hours
         hours = self.hour
+        # Add the days
         hours += self.day * self.HOURS_PER_DAY
-        hours += self.month * self.DAYS_PER_MONTH * self.HOURS_PER_DAY
-        hours += self.year * self.MONTHS_PER_YEAR * self.DAYS_PER_MONTH * self.HOURS_PER_DAY
+        # Add the months
+        hours += sum([self.DAYS_PER_MONTH[month] for month in range(self.month)]) * self.HOURS_PER_DAY
+        # Add the years
+        hours += self.year * self.MONTHS_PER_YEAR * sum(self.DAYS_PER_MONTH.values()) * self.HOURS_PER_DAY
         return hours
     # Get the total number days
     def todays (self, ceiling=False):
+        # Add the days
         days = self.day
-        days += self.month * self.DAYS_PER_MONTH
-        days += self.year * self.MONTHS_PER_YEAR * self.DAYS_PER_MONTH
+        # Add the months
+        days += sum([self.DAYS_PER_MONTH[month] for month in range(self.month)])
+        # Add the years
+        days += self.year * self.MONTHS_PER_YEAR * sum(self.DAYS_PER_MONTH.values())
         if ceiling:
+            # Add the hours
             days += (1 if self.hour > 0 else 0)
         return days
     # Get the total number months
     def tomonths(self, ceiling=False):
+        # Add the months
         month = self.month
+        # Add the years
         month += self.year * self.MONTHS_PER_YEAR
         if ceiling:
+            # Add the hours & days
             month += (1 if self.hour > 0 or self.day > 0 else 0)
         return month
     # Get the total number years
     def toyears(self, ceiling=False):
         if ceiling:
+            # Add the years + any other
             return self.year + (1 if self.hour > 0 or self.day > 0 or self.month > 0 else 0)
         else:
+            # Add just the years
             return self.year
 
     # Get either the date...
@@ -202,18 +228,13 @@ class Date ():
     # The ranges are including on both the min and the max
     @staticmethod
     def random_date (day_range=(0, "@max"), month_range=(0, "@max"), year_range=(1900,2000)):
-        # Convert the '@max' to actual numbers
-        if day_range[1] == "@max":
-            day_range = (day_range[0], Date.DAYS_PER_MONTH)
-        if month_range[1] == "@max":
-            month_range = (month_range[0], Date.MONTHS_PER_YEAR)
         # Check if they're in the valid ranges
-        if day_range[0] < 0 or day_range[1] > Date.DAYS_PER_MONTH:
-            raise ValueError("Day range must be in the range 0 <= day <= {}".format(Date.DAYS_PER_MONTH))
-        if month_range[0] < 0 or month_range[1] > Date.MONTHS_PER_YEAR:
-            raise ValueError("Month range must be in the range 0 <= month <= {}".format(Date.MONTHS_PER_YEAR))
         if year_range[0] < 0:
             raise ValueError("Year range must be in the range 0 <= year")
+        if month_range[0] < 0 or month_range[1] > Date.MONTHS_PER_YEAR:
+            raise ValueError("Month range must be in the range 0 <= month <= {}".format(Date.MONTHS_PER_YEAR))
+        if day_range[0] < 0 or day_range[1] > max(Date.DAYS_PER_MONTH.values()):
+            raise ValueError("Day range must be in the range 0 <= day <= {}".format(max(Date.DAYS_PER_MONTH.values())))
         # Check if the ranges don't cross
         if day_range[0] > day_range[1]:
             raise ValueError("First element of day range must be smaller or equal to it's second element")
@@ -225,6 +246,9 @@ class Date ():
         day = random.randint(day_range[0], day_range[1])
         month = random.randint(month_range[0], month_range[1])
         year = random.randint(year_range[0],year_range[1])
+        # Make sure the day's still within bounds
+        if day > Date.DAYS_PER_MONTH[month]:
+            day = Date.DAYS_PER_MONTH[month]
         # Create the element
         return Date(0, day, month, year)
 
