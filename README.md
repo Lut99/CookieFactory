@@ -32,7 +32,7 @@
     correct days format
 
 # Roadmap
-<span style="color:blue">
+Sidenote: everything in *cursive* is TODO
 - v1.0.0: The Release
   - Add Factory infrastructure (programatically, then)
   - Add the basic Factory modules:
@@ -43,17 +43,16 @@
     - Archive
   - Add recipes & production chains
   - Add UI
-</span>
-  - Finish the depochify() function of Date class
-  - Interface:
-    - Finish adding plots
-    - Add yearly news-paper ish event logs
-  - Add Storage, Mixer and Oven
-  - Add automizing production chains
+  - *Finish the depochify() function of Date class*
+  - *Interface:*
+    - *Finish adding plots*
+    - *Add yearly news-paper ish event logs*
+  - *Add Storage, Mixer and Oven*
+  - *Add automizing production chains*
 
 - vX.0.0: The Visual Update
-  - Interface:
-    - Add LAYOUT OF THE FACTORY???
+  - *Interface:*
+    - *Add LAYOUT OF THE FACTORY???*
 
 # The Products
 
