@@ -49,6 +49,7 @@ Sidenote: everything in *cursive* is TODO
     - *Add yearly news-paper ish event logs*
   - *Add Storage, Mixer and Oven*
   - *Add automizing production chains*
+  - *Let the factory make income*
 
 - vX.0.0: The Visual Update
   - *Interface:*
