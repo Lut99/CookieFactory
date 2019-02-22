@@ -279,10 +279,9 @@ class WorldUpdater (threading.Thread):
             oldest_date = newest_date - Tools.Date(0, len(balances), 0, 0)
             
             values['x_values'] = [(newest_date - Tools.Date(0, day, 0, 0)).getdate() for day in range((newest_date - oldest_date).todays())]
-            values['y_values'] = range(len(balances))
-            values['y_ticks'] = balances
+            values['y_values'] = balances
         # Check if we ACTUALLY need to update
-        values_hash = hash(frozenset(values.items()))
+        values_hash = hash(frozenset([frozenset(values[key]) for key in values]))
         if values_hash != self.prev["Plots"][plot.name]:
             self.prev["Plots"][plot.name] = values_hash
             # Prepare to set the update
@@ -509,7 +508,7 @@ class Window ():
 class PlotWindow ():
     plots = [
         Plots.Plot("Yearly Balance", "plot", "Yearly Balances of {factory}", "Year", "Balance"),
-        Plots.Plot("Daily Balance", "plot", "Daily Balances of {factory}", "Date", "Balance")
+        Plots.Plot("Daily Balance", "date_plot", "Daily Balances of {factory}", "Date", "Balance")
     ]
 
     def __init__(self, root):
