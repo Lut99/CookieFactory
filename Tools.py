@@ -129,8 +129,8 @@ class Date ():
         while hour >= self.HOURS_PER_DAY:
             hour -= self.HOURS_PER_DAY
             day += 1
-        while day >= self.DAYS_PER_MONTH:
-            day -= self.DAYS_PER_MONTH
+        while day >= self.DAYS_PER_MONTH[month]:
+            day -= self.DAYS_PER_MONTH[month]
             month += 1
         while month >= self.MONTHS_PER_YEAR:
             month -= self.MONTHS_PER_YEAR
@@ -146,7 +146,7 @@ class Date ():
             hour += self.HOURS_PER_DAY
             day -= 1
         while day < 0:
-            day += self.DAYS_PER_MONTH
+            day += self.DAYS_PER_MONTH[month]
             month -= 1
         while month < 0:
             month += self.MONTHS_PER_YEAR
@@ -228,13 +228,18 @@ class Date ():
     # The ranges are including on both the min and the max
     @staticmethod
     def random_date (day_range=(0, "@max"), month_range=(0, "@max"), year_range=(1900,2000)):
+        # Make sure we convert the @max
+        if day_range[1] == "@max":
+            day_range = (day_range[0], max(Date.DAYS_PER_MONTH.values())-1)
+        if month_range[1] == "@max":
+            month_range = (month_range[0], Date.MONTHS_PER_YEAR-1)
         # Check if they're in the valid ranges
         if year_range[0] < 0:
             raise ValueError("Year range must be in the range 0 <= year")
-        if month_range[0] < 0 or month_range[1] > Date.MONTHS_PER_YEAR:
+        if month_range[0] < 0 or month_range[1] > Date.MONTHS_PER_YEAR-1:
             raise ValueError("Month range must be in the range 0 <= month <= {}".format(Date.MONTHS_PER_YEAR))
-        if day_range[0] < 0 or day_range[1] > max(Date.DAYS_PER_MONTH.values()):
-            raise ValueError("Day range must be in the range 0 <= day <= {}".format(max(Date.DAYS_PER_MONTH.values())))
+        if day_range[0] < 0 or day_range[1] > max(Date.DAYS_PER_MONTH.values()) - 1:
+            raise ValueError("Day range must be in the range 0 <= day <= {}".format(max(Date.DAYS_PER_MONTH.values()) - 1))
         # Check if the ranges don't cross
         if day_range[0] > day_range[1]:
             raise ValueError("First element of day range must be smaller or equal to it's second element")
