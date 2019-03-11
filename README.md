@@ -30,6 +30,9 @@
   - Changed Date() to work with correct days per month (e.g., February has 28)
   - Changed Date() to work with epochs since 00:00:00 00/00/0000 to support
     correct days format
+- v0.9.0 (alpha):
+  - Changed the interface library to PyQT 5 instead of Tkinter
+  - Changed plotter to use Bokeh plots instead of matplotlib
 
 # Roadmap
 Sidenote: everything in *cursive* is TODO
@@ -45,7 +48,11 @@ Sidenote: everything in *cursive* is TODO
   - Add UI
   - *Finish the depochify() function of Date class*
   - *Interface:*
-    - *Finish adding plots*
+    - *Add console*
+    - *Add general information*
+    - *Add factory-specific information*
+    - *Add settings*
+    - *Add plots*
     - *Add yearly news-paper ish event logs*
   - *Add Storage, Mixer and Oven*
   - *Add automizing production chains*
