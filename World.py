@@ -264,28 +264,36 @@ class WorldUpdater (threading.Thread):
         values = {}
         if plot.name == "Yearly Balance":
             # Get the years (only last hundred years)
-            found_year = factory.modules.archive.get("General", "Founded").year
-            newest_year = factory.time.year
-            oldest_year = newest_year - 100
-            if oldest_year < found_year:
-                oldest_year = found_year
-            values['x_values'] = range(oldest_year, newest_year)
-            values['y_values'] = factory.modules.archive.get("Finance", "Yearly Balances")[-100:]
+            balances = factory.modules.archive.get("Finance", "Yearly Balances")[-100:]
+            # Pad to reach the 100
+            balances = [0 for i in range(len(balances), 100)] + balances
+            # Get the dates
+            newest_year = factory.time.now() - Tools.Date(0, 0, 0, 1)
+            oldest_year = newest_year - Tools.Date(0, 0, 0, len(balances))
+        
+            values['x_values'] = range(oldest_year.year, newest_year.year)
+            values['y_values'] = balances
+
+            # Add the scheduler
+            self.window.plot_window.schedule_plot_update(Plots.Clear(), {})
+            self.window.plot_window.schedule_plot_update(plot, values)
+            self.window.plot_window.schedule_plot_update(Plots.Labels(plot.title, plot.x_label, plot.y_label), {})
         elif plot.name == "Daily Balance":
             # Get the last 100 days
             balances = factory.modules.archive.get("Finance", "Daily Balances")[-100:]
+            # Pad to reach the 100
+            balances = [0 for i in range(len(balances), 100)] + balances
             # Get the dates
             newest_date = factory.time.now() - Tools.Date(0, 1, 0, 0)
             oldest_date = newest_date - Tools.Date(0, len(balances), 0, 0)
             
-            values['x_values'] = [(newest_date - Tools.Date(0, day, 0, 0)).getdate() for day in range((newest_date - oldest_date).todays())]
+            values['x_values'] = [newest_date - Tools.Date(0, day, 0, 0) for day in range((newest_date - oldest_date).todays())]
             values['y_values'] = balances
-        # Check if we ACTUALLY need to update
-        values_hash = hash(frozenset([frozenset(values[key]) for key in values]))
-        if values_hash != self.prev["Plots"][plot.name]:
-            self.prev["Plots"][plot.name] = values_hash
-            # Prepare to set the update
-            self.window.plot_window.schedule_plot_update(plot.plot, self.window.plot_window.a, values)
+
+            # Add the scheduler
+            self.window.plot_window.schedule_plot_update(Plots.Clear(), {})
+            self.window.plot_window.schedule_plot_update(plot, values)
+            self.window.plot_window.schedule_plot_update(Plots.Labels(plot.title, plot.x_label, plot.y_label), {})
 
     # Prints on the command
     def print(self, text, end="\n"):
@@ -544,18 +552,20 @@ class PlotWindow ():
         self.update_plot()
     
     def update_plot(self):
-        if len(self.plot_tasks) > 0:
-            # Run the first task
-            plot_func, sub_plot, values = self.plot_tasks[0]
-            plot_func(sub_plot, values)
+        while len(self.plot_tasks) > 0:
+            # Run the task
+            plot, values = self.plot_tasks[0]
+            commands = plot.plot(self.a, values)
+            if 'rotate_x_labels' in commands:
+                self.fig.autofmt_xdate()
             # Draw
             self.plot.draw()
             self.plot_tasks = self.plot_tasks[1:]
         # Call again after .5 seconds
         self.boxPlot.after(500, self.update_plot)
     
-    def schedule_plot_update(self, plot_func, sub_plot, values):
-        self.plot_tasks.append((plot_func, sub_plot, values))
+    def schedule_plot_update(self, plot, values):
+        self.plot_tasks.append((plot, values))
 
 def main ():
     window = Window()
