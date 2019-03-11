@@ -43,8 +43,8 @@ class Date ():
         2 : 31,
         3 : 30,
         4 : 31,
-        5 : 31,
-        6 : 30,
+        5 : 30,
+        6 : 31,
         7 : 31,
         8 : 30,
         9 : 31,
@@ -66,6 +66,9 @@ class Date ():
     # str() handler
     def __str__(self):
         return "{:02d}:00:00 {:02d}/{:02d}/{:04d}".format(self.hour, self.day + 1, self.month + 1, self.year)
+    # hash() handler
+    def __hash__(self):
+        return hash(self.epoch)
     # <= handler
     def __le__(self, other):
         return self.epoch <= other.epoch
@@ -213,19 +216,24 @@ class Date ():
     def depochify (epoch):
         # First, take as many years as possible
         HOURS_PER_YEAR = sum(Date.DAYS_PER_MONTH.values()) * Date.HOURS_PER_DAY
-        years = int(epoch / HOURS_PER_YEAR)
-        epoch = epoch % HOURS_PER_YEAR
-        # Then, take the months
+        # Do the years...
+        years = 0
+        while epoch - HOURS_PER_YEAR >= 0:
+            epoch -= HOURS_PER_YEAR
+            years += 1
+        # ...months...
         months = 0
-        while int(epoch / Date.HOURS_PER_DAY) > Date.DAYS_PER_MONTH[months]:
-            months += 1
+        while epoch - (Date.DAYS_PER_MONTH[months] * Date.HOURS_PER_DAY) >= 0:
             epoch -= Date.DAYS_PER_MONTH[months] * Date.HOURS_PER_DAY
-        # Take the days
-        days = int(epoch / Date.HOURS_PER_DAY)
-        # Finally, take the hours
-        hours = epoch % Date.HOURS_PER_DAY
+            months += 1
+        # ...days...
+        days = 0
+        while epoch - Date.HOURS_PER_DAY >= 0:
+            epoch -= Date.HOURS_PER_DAY
+            days += 1
+        # ...and hours are now epoch :)
         # Done
-        return hours, days, months, years
+        return epoch, days, months, years
     
 
 # Class representing the Position a worker can work in
