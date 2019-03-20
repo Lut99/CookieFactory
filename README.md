@@ -31,8 +31,9 @@
   - Changed Date() to work with epochs since 00:00:00 00/00/0000 to support
     correct days format
 - v0.9.0 (alpha):
-  - Changed the interface library to PyQT 5 instead of Tkinter
-  - Changed plotter to use Bokeh plots instead of matplotlib
+  - Removed the existing interface
+  - Instead, uses another application in Swift that communcates to the
+    simulation with TCP sockets
 
 # Roadmap
 Sidenote: everything in *cursive* is TODO
