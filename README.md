@@ -153,7 +153,7 @@ the modules together and allowing easier management of one product:
   To replace the fired workers, or to get workers to begin with, Human Resources
   also hires new people. This is where the human resources team comes in: every
   month, one worker can hire one new worker for the factory (the only exception
-  to this are workers for Human Resources self. They magically hire themselves).
+  to this are workers for Human Resources. They magically hire themselves).
   Accompanied with a position is the minimum amount of education a worker should
   have to be able to do a job, which is the measure by which they determine if
   you can be hired or not.
