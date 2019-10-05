@@ -6,7 +6,7 @@
 # For a detailed explaination and changelog, see cookie_factory_doc.txt
 
 # TODO:
-#  - Finish depochify in Date class (Tools)
+#  - Add TCP connections etc to World.py
 # See 'README.md' for the Roadmap for bigger stages in the upcoming development
 
 import time
@@ -42,7 +42,7 @@ class Factory ():
 
     # MAIN
     def run (self, ticked):
-        # Do an hour's work
+        # An hour has ended
 
         # Manage the worker's shift
         self.modules.hr.manage_shifts()

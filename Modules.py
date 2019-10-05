@@ -6,11 +6,13 @@
 
 import random
 import sys
+import uuid
 
 import APIs.calculator as calculator
 import Tools
 from Tools import Date
 from Tools import Position
+
 
 class Storage ():
     class Rule ():
@@ -89,6 +91,7 @@ class Storage ():
         print("Total: {}/{} units stored".format(self.stored(), self.max))
         print("-" * 50)
 
+
 class Module ():
     def __init__(self, name, cost, positions, factory_name, modules, time, construction_time):
         if name == type:
@@ -103,6 +106,9 @@ class Module ():
         self.work_done = 0
         self.founded = self.time.now()
         self.factory_name = factory_name
+
+        # Also generate a unique identifier
+        self.uuid = str(uuid.uuid1())
 
     def do_work (self, workers):
         for w in workers:
@@ -191,12 +197,14 @@ class Office (Module):
                 # New year
                 modules.archive.update('Finance', 'Yearly Balances', modules.office.check_balance())
 
+
 # Can be purchased to research new recipes and modules.
 class Research (Module):
     type = "research"
 
     def __init__(self):
         super().__init__()
+
 
 # A requirement for any factory. Manages staff and salaries.
 class HumanResources (Module):
@@ -350,6 +358,7 @@ class HumanResources (Module):
                 to_return.append(w)
         return to_return
 
+
 # Manages resource flow
 class Logistics (Module):
     type = "logistics"
@@ -496,6 +505,7 @@ class Logistics (Module):
         # Return that which we have successfuly stored
         return got - overflow
 
+
 # Serves as the connection between the factory and the (global) market.
 class Depot (Module):
     type = "depot"
@@ -547,6 +557,7 @@ class Depot (Module):
             bought += self.modules.office.buy_resources(item, shipped)
         # Return the items bought instead
         return bought
+
 
 # Saves all sort of stats about the factory
 class Archive (Module):
@@ -669,14 +680,15 @@ class RobotResources (Module):
     def __init__(self):
         super().__init__()
 
-# COOKIE MODULES
 
+# COOKIE MODULES
 # Stores stuff
 class StoreRoom (Module):
     type = "store_room"
 
     def __init__(self):
         super().__init__()
+
 
 # A Mixer, which can mix stuff.
 class Mixer (Module):
@@ -686,6 +698,7 @@ class Mixer (Module):
     def __init__(self):
         super().__init__()
 
+
 # An oven, which can heat stuff
 class Oven (Module):
     type = "oven"
@@ -693,8 +706,9 @@ class Oven (Module):
 
     def __init__(self):
         super().__init__()
-# OTHER MODULES
 
+
+# OTHER MODULES
 # Test module
 class SimpleProcessingUnit (Module):
     type = "simple_processing_unit"

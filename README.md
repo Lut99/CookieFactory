@@ -32,7 +32,7 @@
     correct days format
 - v0.9.0 (alpha):
   - Removed the existing interface
-  - Instead, uses another application in Swift that communcates to the
+  - Instead, uses another application in Swift that communicates to the
     simulation with TCP sockets
 
 # Roadmap
@@ -193,3 +193,120 @@ the modules together and allowing easier management of one product:
   resources and the prices don't change depending on how many bought or sold.
   However, in later versions, the market is a dynamic model: there is a pool of
   resources, and factories get less for items if they are sold in huge amounts.
+
+# The Cookie Factory Network Protocol (CFNP)
+In order for an Interface to connect with the simulation, a network protocol
+was devised. This is a single protocol that handles terminal input / output,
+archive information and world information. It works over TCP, so we don't
+have to be concerned by stream order or completeness.
+
+As an additional security layer, the CFNP requires the user to enter a password
+right after connection is made in order to continue. Upon failure, the user is
+rejected.
+
+## The Header
+The most important part of this protocol is the header. It exists out of X
+bytes in total, which looks as follows.
+The first byte marks the operator code, which in turn determines what type
+of information is being send. So far, these opcodes have a meaning:
+  - 0x00: Connection Request            (PASSWORD)
+  - 0x01: Connection Accept             (PASSWORD)
+  - 0x02: Terminal Public Output Send   (TERMINAL)
+  - 0x03: Terminal Private Output Send  (TERMINAL)
+  - 0x04: Terminal Input Send           (TERMINAL)
+  - 0x05: Terminal Sync Request         (TERMINAL)
+  - 0x06: Terminal Sync Response        (TERMINAL)
+  - 0x07: Terminal Message              (TERMINAL)
+Each opcode belongs to a subprotocol, which is indicated in the brackets at
+the end. Please see below for more information about these subprotocols.
+
+An operator code of -1 means that the connection has timed out
+
+Following the opcode will be a 32-bit number, which specifies the total message
+size after the opcode and the length. This way, the receiver knows how many
+bytes to expect.
+
+## The Fourth Handshake (PASSWORD)
+Aside from the way that incoming messages are read, the CFNP also provides
+additional security by only allowing access to those with a password. There
+are two messages for those, the request and the accept. The user is simply
+disconnected without any message if the password was incorrect.
+
+### Connection Request
+This is the message that the user sends to the server upon initiating contact.
+Aside from the default headers, this message contains no other than the password.
+
+### Connection Accept
+If the user has entered a correct password, they will be greeted by this message.
+It is nothing more than the default header but then with this opcode.
+
+## Terminal Output / Input (TERMINAL)
+An important part of the CFNP is the syncing of general output information
+across the Interfaces. The basic idea is that each Interface holds an internal
+terminal log that is updated by the Terminal Public Output Send. Should this
+log get out of sync with the server, the Interface is supposed to send a sync
+request back to the server in which it downloads the entire terminal again.
+Additionally, the Interface also has to maintain a private terminal log with
+messages only for that particular Interface. This needn't be synced, and is
+only for replies from commands the user sends to the server.
+
+A list of the error status codes for the messages:
+  - 0x00: Information
+  - 0x01: Warning
+  - 0x02: Fatal Error
+  - 0x03: Command Information
+  - 0x04: Command Parse Error
+  - 0x05: Command Run Error
+
+### Terminal Public Output Send
+During a Terminal Public Output Send, the server sends each interface a new
+message from the simulation. The header that is matched to this opcode has the
+following structure. First, there will be a checksum of 8 bytes long, that is
+used to check if the receiver is still in sync with the sender. Then comes the
+message, which is in the format as specified by Terminal Message.
+
+This type of message can be send at any time, and not just as a response to a
+Terminal Input Send.
+
+### Terminal Private Output Send
+During a Terminal Private Output Send, the server sends the interface a new
+message - but only this interface. This is normally the result of a command,
+and therefore has a much simpeler structure. No checksum is needed, as this
+type of message does not need to be synced with the server. That's why there's
+the message metadata immediately, which consists of a message error status
+(1 byte), a real-life timestamp (8 bytes). The remained of the message is the
+actual terminal message, in string format.
+
+This type of message is usually only in response to a Terminal Input Send.
+
+### Terminal Input Send
+When the user types a command in the interface, a Terminal Input Send is send
+to the server. This has a fairly simple structure: First is a real-life
+timestamp of 8 bytes. Immediately afterwards is the message that the user send,
+in string, which the server will parse and then interpret.
+
+Based on what command and the success status of it, the terminal will then
+receive either a Terminal Private Output Send or a Terminal Public Output Send.
+
+### Terminal Sync Request
+The Terminal Sync Request is a very simple command. It simply exists out of the
+normal header, and indicates nothing more than that the client wants to sync the
+terminal with the server.
+
+### Terminal Sync Response
+If the client sends a Terminal Sync Request, they get this message back. It
+first consists of a checksum of the terminal from the server (8 bytes),
+followed by the real-life timestamp (8 bytes) at which the message was send.
+The remainder of the message is the entire terminal output. Each message itself
+consists out of Terminal Sync Messages, which are defined as a self-sustained
+sub-protocol.
+
+### Terminal Message
+The Terminal Message is never directly send as a standalone. It is simply
+wrapped in a Terminal Public Output Send or a Terminal Sync Response. Its main
+goal is to unify the way that public messages are transported. The header of
+each such message exists out of a code indicating the message content length
+(8 bytes), message error status (1 byte), a real-life timestamp (8 bytes),
+an in-simulation timestamp (8 bytes) and the in-simulation origin of the
+message (36 bytes). The remainder of the message is the actual terminal
+message, in string format.

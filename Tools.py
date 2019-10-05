@@ -203,8 +203,7 @@ class Date ():
         # Add the days
         epoch += days * Date.HOURS_PER_DAY
         # Add the months
-        epoch += int(months / DAYS_PER_YEAR) * DAYS_PER_YEAR
-        epoch += sum([Date.DAYS_PER_MONTH[month] for month in range(months % DAYS_PER_YEAR)])
+        epoch += sum([Date.DAYS_PER_MONTH[month] * Date.HOURS_PER_DAY for month in range(months)])
         # Add the years
         epoch += years * DAYS_PER_YEAR * Date.HOURS_PER_DAY
 
@@ -217,20 +216,16 @@ class Date ():
         # First, take as many years as possible
         HOURS_PER_YEAR = sum(Date.DAYS_PER_MONTH.values()) * Date.HOURS_PER_DAY
         # Do the years...
-        years = 0
-        while epoch - HOURS_PER_YEAR >= 0:
-            epoch -= HOURS_PER_YEAR
-            years += 1
+        years = int(epoch / HOURS_PER_YEAR)
+        epoch = epoch % HOURS_PER_YEAR
         # ...months...
         months = 0
         while epoch - (Date.DAYS_PER_MONTH[months] * Date.HOURS_PER_DAY) >= 0:
             epoch -= Date.DAYS_PER_MONTH[months] * Date.HOURS_PER_DAY
             months += 1
         # ...days...
-        days = 0
-        while epoch - Date.HOURS_PER_DAY >= 0:
-            epoch -= Date.HOURS_PER_DAY
-            days += 1
+        days = int(epoch / Date.HOURS_PER_DAY)
+        epoch = epoch % Date.HOURS_PER_DAY
         # ...and hours are now epoch :)
         # Done
         return epoch, days, months, years
@@ -302,6 +297,7 @@ class Worker ():
     def celebrate_birthday(self):
         self.age += 1
 
+
 # A class representing the global market (This is the static version).
 class Market ():
     def __init__(self, items, recipes, production_chains):
@@ -338,6 +334,7 @@ class Market ():
             return 0
         # Return the money got by selling
         return self.sell_list[item] * amount
+
 
 # A class for holding and working with the Modules
 class ModulesList ():
@@ -430,14 +427,14 @@ class ModulesList ():
             to_return[m] = self.__modules[m]
         return to_return
 
-# A class for telling the factory how to make a product
+
+# Classes for telling the factory how to make a product
 class Recipe ():
     def __init__(self, name, module, inputs, outputs):
         self.name = name
         self.module = module
         self.inputs = inputs
         self.outputs = outputs
-
 class ProductionChain ():
     def __init__(self, name, modules):
         self.name = name
