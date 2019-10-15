@@ -13,6 +13,9 @@ import Tools
 from Tools import Date
 from Tools import Position
 
+# Declare the UUID list
+UUID_MAP = {}
+
 
 class Storage ():
     class Rule ():
@@ -93,13 +96,14 @@ class Storage ():
 
 
 class Module ():
-    def __init__(self, name, cost, positions, factory_name, modules, time, construction_time):
+    def __init__(self, name, cost, positions, factory_name, modules, connection_server, time, construction_time):
         if name == type:
             print("Name of module cannot equal it's type")
             return
         self.name = name
         self.cost = cost
         self.modules = modules
+        self.connection_server = connection_server
         self.time = time
         self.construction_time = construction_time
         self.positions = positions
@@ -109,16 +113,17 @@ class Module ():
 
         # Also generate a unique identifier
         self.uuid = str(uuid.uuid1())
+        UUID_MAP[self.uuid] = self.name
 
-    def do_work (self, workers):
+    def do_work(self, workers):
         for w in workers:
             # Get the workload
             self.work_done += w.work()
-    
-    def log (self, text, end="\n"):
+
+    def log(self, text, end="\n"):
         if type(text) != str:
             text = str(text)
-        Tools.CONSOLE.print("[" + self.factory_name + "] " + text, end=end)
+        self.connection_server.announce(text + end, origin=self.uuid)
 
 # ADMINISTRATIVE MODULES
 
@@ -126,14 +131,14 @@ class Module ():
 class Office (Module):
     type = "office"
 
-    def __init__(self, budget, market, factory_name, modules, time):
+    def __init__(self, budget, market, factory_name, modules, connection_server, time):
         super().__init__("Headquarters (HQ)", 0, [Position(
             name="CEO",
             workload=2,
             salary=100,
             schedule=[ 9, 17 ],
             education_level = 3
-        )], factory_name, modules, time, Date(0,0,0,0))
+        )], factory_name, modules, connection_server, time, Date(0,0,0,0))
 
         self.budget = budget
         self.market = market
@@ -210,7 +215,7 @@ class Research (Module):
 class HumanResources (Module):
     type = "human_resources"
 
-    def __init__(self, factory_name, modules, time):
+    def __init__(self, factory_name, modules, connection_server, time):
         worker_position = Position(
             name="Travel Agent",
             workload=1,
@@ -218,7 +223,7 @@ class HumanResources (Module):
             schedule=[ 9, 17 ],
             education_level = 1
         )
-        super().__init__("Human Resources (HR)", 0, [worker_position for i in range(5)], factory_name, modules, time, Date(0,0,0,0))
+        super().__init__("Human Resources (HR)", 0, [worker_position for i in range(5)], factory_name, modules, connection_server, time, Date(0,0,0,0))
         self.workers = []
 
         # Initialise the archive
@@ -363,14 +368,14 @@ class HumanResources (Module):
 class Logistics (Module):
     type = "logistics"
 
-    def __init__(self, factory_name, modules, time):
+    def __init__(self, factory_name, modules, connection_server, time):
         super().__init__("Logistics", 0, [ Position(
             name = "Manager",
             workload = 2,
             salary = 300,
             schedule = [ 9, 17 ],
             education_level = 1
-        ) ], factory_name, modules, time, Date(0,0,0,0))
+        ) ], factory_name, modules, connection_server, time, Date(0,0,0,0))
         # Add some additional positions
         for _ in range(10):
             self.positions.append(Position(
@@ -510,14 +515,14 @@ class Logistics (Module):
 class Depot (Module):
     type = "depot"
 
-    def __init__(self, factory_name, modules, time):
+    def __init__(self, factory_name, modules, connection_server, time):
         super().__init__("Depot", 0, [ Position(
             name="Truck Driver",
             workload = 2,
             salary = 300,
             schedule = [ 9, 17 ],
             education_level = 1
-        ) for i in range(10)], factory_name, modules, time, Date(0,0,0,0))
+        ) for i in range(10)], factory_name, modules, connection_server, time, Date(0,0,0,0))
 
         # Init the storage
         self.storage = Storage(max=float('inf'))
@@ -563,14 +568,14 @@ class Depot (Module):
 class Archive (Module):
     type = "archive"
 
-    def __init__(self, factory_name, modules, time):
+    def __init__(self, factory_name, modules, connection_server, time):
         super().__init__("Archive", 0, [Position(
             name="Clerk",
             workload=0,
             salary=500,
             schedule=[9,17],
             education_level=2
-        ) for _ in range(5)], factory_name, modules, time, Date(0,0,0,0))
+        ) for _ in range(5)], factory_name, modules, connection_server, time, Date(0,0,0,0))
 
         # Init the __cabinets list
         self.__cabinets = {}

@@ -34,6 +34,8 @@
   - Removed the existing interface
   - Instead, uses another application in Swift that communicates to the
     simulation with TCP sockets
+- v0.9.1 (alpha):
+  - Reorganized files to a more structured and logical approach
 
 # Roadmap
 Sidenote: everything in *cursive* is TODO

@@ -6,13 +6,15 @@
 # For a detailed explaination and changelog, see cookie_factory_doc.txt
 
 # TODO:
-#  - Add TCP connections etc to World.py
+#  - 
 # See 'README.md' for the Roadmap for bigger stages in the upcoming development
 
 import time
 import Modules
+from Modules import UUID_MAP
 import numpy as np
 import random
+import uuid
 
 import Tools
 from Tools import Date
@@ -24,19 +26,24 @@ from Tools import NAMES as Names
 # THE FACTORRRRYYY
 class Factory ():
     # Init
-    def __init__(self, name, budget, type, market, time):
+    def __init__(self, name, budget, type_, market, connection_server, time):
         self.name = name
-        self.type = type
+        self.type = type_
         self.market = market
         self.time = time
+        self.connection_server = connection_server
         # Init modules so we can pass a reference
         self.modules = ModulesList(self.time)
         # Add the basic objects
-        self.modules.spawn(Modules.Archive(self.name, self.modules, self.time), special="archive")
-        self.modules.spawn(Modules.Office(budget, self.market, self.name, self.modules, self.time), special="office")
-        self.modules.spawn(Modules.HumanResources(self.name, self.modules, self.time), special="hr")
-        self.modules.spawn(Modules.Logistics(self.name, self.modules, self.time), special="logistics")
-        self.modules.spawn(Modules.Depot(self.name, self.modules, self.time), special="depot")
+        self.modules.spawn(Modules.Archive(self.name, self.modules, self.connection_server, self.time), special="archive")
+        self.modules.spawn(Modules.Office(budget, self.market, self.name, self.modules, self.connection_server, self.time), special="office")
+        self.modules.spawn(Modules.HumanResources(self.name, self.modules, self.connection_server, self.time), special="hr")
+        self.modules.spawn(Modules.Logistics(self.name, self.modules, self.connection_server, self.time), special="logistics")
+        self.modules.spawn(Modules.Depot(self.name, self.modules, self.connection_server, self.time), special="depot")
+
+        # Create a uuid
+        self.uuid = str(uuid.uuid1())
+        UUID_MAP[self.uuid] = self.name
 
         self.log("Factory founded")
 
@@ -81,15 +88,12 @@ class Factory ():
         self.modules.archive.manage(ticked)
 
     # Threading functions
-    def log (self, text):
-        Tools.CONSOLE.print("[" + self.name + "] " + text)
+    def log (self, text, end="\n"):
+        if type(text) != str:
+            text = str(text)
+
+        self.connection_server.announce(text + end, origin=self.uuid)
 
     def stop (self):
         self.log("Successfully closed")
-        print("[" + self.name + "] Successfully closed")
-        print(" > Start    : {}".format(Date(0, 0, 0, 1970)))
-        print(" > End      : {}".format(self.time))
-        print(" > Duration : {} days".format((self.time - Date(0, 0, 0, 1970)).todays()))
-
-    # Factory functions
 
