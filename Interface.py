@@ -12,9 +12,9 @@ import threading
 import time
 import struct
 
-from Globals import UUID_MAP
-from Globals import TIME
+import Globals
 from Globals import register_uuid
+from Globals import UUID_MAP
 from CFNPv2_Message import Message
 import CFNPv2_Codes as CFNP
 
@@ -56,8 +56,8 @@ class TerminalData():
         s_message = len(message)
         if self.size + s_message > self.max_size:
             # Remove the first one
-            s = self._struct.unpack(self._lengths[0])
-            self._lengths = self._lengths[1:]
+            s = self._struct.unpack(self._lengths[:4])[0]
+            self._lengths = self._lengths[4:]
             self._raw = self._raw[s:]
             self.size -= s
 
@@ -177,9 +177,9 @@ class ConnectionServer (threading.Thread):
         self.announcements = TerminalData()
 
         # Store the simulated time object
-        self.time = TIME
+        self.time = Globals.TIME
         # Store a uuid for server messages
-        self.uuid = register_uuid("SERVER")
+        self.uuid = register_uuid("World")
 
         # Initialise the server
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -248,9 +248,9 @@ class ConnectionServer (threading.Thread):
                         continue
 
         finally:
-            self.log("Closing server...", end="")
+            self.log("Closing server...")
             self.sock.close()
-            print(" Done")
+            print("Closed server.")
 
     def stop(self):
         # Stop the Thread
@@ -316,8 +316,12 @@ class ConnectionServer (threading.Thread):
             function will only handle those relevant for the server-side
         """
 
-        # Check if it's supposed to go into a mailbox
-        pass
+        # Decide on the proper action
+        if message.subcode == CFNP.TERMINAL.code:
+            if message.opcode == CFNP.TERMINAL.COMMAND_REQUEST:
+                pass
+            elif message.opcode == CFNP.TERMINAL.SYNC_REQUEST:
+                pass
 
     def now(self):
         return time.strftime("%H:%M:%S")

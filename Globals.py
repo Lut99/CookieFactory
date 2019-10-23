@@ -10,6 +10,8 @@ import uuid
 
 # Declare the UUID list that keeps track of the UUID
 UUID_MAP = {}
+# Also declare the name map, that maps a name to a UUID
+NAME_MAP = {}
 # Placeholders for...
 # ...the World's Connection Server
 CONNECTION_SERVER = None
@@ -34,5 +36,6 @@ def register_uuid(name):
     # Create a UUID
     uid = str(uuid.uuid1())
     # Register and return it
-    UUID_MAP[name] = uid
+    UUID_MAP[uid] = name
+    NAME_MAP[name] = uid
     return uid

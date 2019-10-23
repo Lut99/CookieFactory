@@ -5,13 +5,8 @@
 import random
 
 import APIs.AdvancedParser as AdvancedParser
+import Globals
 from Globals import register_uuid
-from Globals import CONNECTION_SERVER
-from Globals import ITEMS
-from Globals import RECIPES
-from Globals import NAMES
-from Globals import TIME
-from Globals import MODULES_LIST
 
 
 class Date ():
@@ -257,8 +252,14 @@ class Worker ():
 
     def __init__(self, name="@rnd", age="@rnd", stats="@rnd"):
         if name == "@rnd":
-            rnd_i = random.randint(0, len(NAMES['FirstName']) - 1)
-            name = NAMES['FirstName'][rnd_i] + " " + NAMES['LastName'][rnd_i]
+            rnd_i = random.randint(0, len(Globals.NAMES['FirstName']) - 1)
+            if rnd_i >= 10000:
+                # We entered the meme names: also take the surname
+                name = f"{Globals.NAMES['FirstName'][rnd_i]} {Globals.NAMES['LastName'][rnd_i]}"
+            else:
+                # Take a random surname
+                rnd_j = random.randint(0, 9999)
+                name = f"{Globals.NAMES['FirstName'][rnd_i]} {Globals.NAMES['LastName'][rnd_j]}"
         self.name = name
         self.age = age if age != "@rnd" else random.randint(18, 67)
         self.stats = stats if stats != "@rnd" else Worker.Stats()
@@ -267,7 +268,9 @@ class Worker ():
         self.no_salary = 0
 
         # Generate a random b_day
-        year = TIME.getyears() - age
+        year = Globals.TIME.toyears() - self.age
+        if year < 0:
+            year = 0
         month = random.randint(0, Date.MONTHS_PER_YEAR - 1)
         day = random.randint(0, Date.DAYS_PER_MONTH[month] - 1)
         self.b_day = Date(day=day, month=month, year=year)
@@ -275,7 +278,7 @@ class Worker ():
         # Prepare some standard initialisations
         self.module = "__EMPTY"
         self.position = Position()
-        self.started = TIME.now()
+        self.started = Globals.TIME.now()
         self.perfect = -1
         self.salary = -1
 
@@ -321,7 +324,7 @@ class Worker ():
         """ Logs on the connection_server """
         if type(text) != str:
             text = str(text)
-        CONNECTION_SERVER.announce(text + end, origin=self.uuid)
+        Globals.CONNECTION_SERVER.announce(text + end, origin=self.uuid)
 
 
 # A class representing the global market (This is the static version).
@@ -337,16 +340,16 @@ class Market ():
         self._items = {}
         self.buy_list = {}
         self.sell_list = {}
-        for i in range(len(ITEMS)):
-            self._items[ITEMS['Name'][i]] = {
-                'type': ITEMS['Type'][i],
-                'buy': ITEMS['BuyPrice'][i],
-                'sell': ITEMS['SellPrice'][i]
+        for i in range(len(Globals.ITEMS)):
+            self._items[Globals.ITEMS['Name'][i]] = {
+                'type': Globals.ITEMS['Type'][i],
+                'buy': Globals.ITEMS['BuyPrice'][i],
+                'sell': Globals.ITEMS['SellPrice'][i]
             }
-            if ITEMS['BuyPrice'][i] != "-":
-                self.buy_list[ITEMS['Name'][i]] = float(ITEMS['BuyPrice'][i])
-            if ITEMS['SellPrice'][i] != "-":
-                self.sell_list[ITEMS['Name'][i]] = float(ITEMS['SellPrice'][i])
+            if Globals.ITEMS['BuyPrice'][i] != "-":
+                self.buy_list[Globals.ITEMS['Name'][i]] = float(Globals.ITEMS['BuyPrice'][i])
+            if Globals.ITEMS['SellPrice'][i] != "-":
+                self.sell_list[Globals.ITEMS['Name'][i]] = float(Globals.ITEMS['SellPrice'][i])
 
         # Done
 
@@ -467,8 +470,8 @@ class ModulesList ():
         # Add it to the list of constructing modules
         self._constructing.append({
             'module': module,
-            'start': TIME.now(),
-            'stop': TIME + module.construction_time
+            'start': Globals.TIME.now(),
+            'stop': Globals.TIME + module.construction_time
         })
         self.log(f"Begun construction on a new {module.type}, '{module.name}', at the expense of {module.cost} pounds.")
 
@@ -490,7 +493,7 @@ class ModulesList ():
         """ Logs on the connection_server """
         if type(text) != str:
             text = str(text)
-        CONNECTION_SERVER.announce(text + end, origin=self.uuid)
+        Globals.CONNECTION_SERVER.announce(text + end, origin=self.uuid)
 
 
 # RECIPE & PRODCHAIN CLASSES
@@ -595,13 +598,13 @@ def recipe_parser(name, text, DataTypes):
         raise AdvancedParser.DataTypeValueException("Could not parse recipe '{}' as recipe: missing 'Module' field".format(name))
     # Get the module
     module = recipe['Module']
-    if module not in MODULES:
+    if module not in Globals.MODULES_LIST:
         raise AdvancedParser.DataTypeValueException("Could not parse recipe '{}' as recipe: Unknown module '{}'".format(name, module))
     # Check if it supports recipeing
-    if not hasattr(MODULES[module], 'recipe_fields'):
+    if not hasattr(Globals.MODULES_LIST[module], 'recipe_fields'):
         raise AdvancedParser.DataTypeValueException("Could not parse recipe '{}' as recipe: Module '{}' does not produce anything".format(name, module))
     # Check if it has all other required fields
-    for field, t in MODULES[module].recipe_fields:
+    for field, t in Globals.MODULES_LIST[module].recipe_fields:
         if field not in recipe:
             raise AdvancedParser.DataTypeValueException("Could not parse recipe '{}' as recipe: Module '{}' requires '{}' field, but not given".format(name, module, field))
         elif type(recipe[field]) != t:
@@ -619,7 +622,7 @@ def module_parser(name, text, DataTypes):
     # First, parse as list
     module = AdvancedParser.dict_parser(name, text, DataTypes)
 
-    fields = [('input', MODULES_LIST), ('recipe', [recipe.name for recipe in RECIPES]), ('output', MODULES_LIST)]
+    fields = [('input', Globals.MODULES_LIST), ('recipe', [recipe.name for recipe in Globals.RECIPES]), ('output', Globals.MODULES_LIST)]
     for f, ls in fields:
         if f not in module:
             raise AdvancedParser.DataTypeValueException(f"Could not parse module '{name}' as module: Missing field '{f}'")
@@ -659,3 +662,35 @@ def load_production_chains(path):
 
     # Done, return
     return production_chains
+
+
+def test_date():
+    import time
+
+    d = Date()
+
+    ticked = []
+    start = time.time()
+    for i in range(1000000):
+        # Depochify
+        hour, day, month, year = Date.depochify(d.epoch)
+        epoch = Date.epochify(hour, day, month, year)
+
+        equal = d.epoch == epoch
+        if not equal:
+            print(f"Mismatch found: {d.getdate()}")
+            break
+
+        if time.time() - start > 1:
+            print(f"Current date: {d.getdate()} / Target date: {Date(epoch=1000000 * 24).getdate()}")
+            start = time.time()
+
+        # Update time
+        ticked = d.tick(24)
+
+    print("Done.")
+
+
+if __name__ == "__main__":
+    # Test the epoch and depochify
+    test_date()

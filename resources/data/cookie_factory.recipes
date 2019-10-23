@@ -31,7 +31,7 @@ Each recipe should at least have a Module field (string) specified, indicating
 */
 
 recipe (ChocolateChipDough) {
-  string (Module) {mixer}
+  string (Module) {Mixer}
   list (Inputs) {
     int (Flour) {500}
     int (Baking Soda) {200}
@@ -46,7 +46,7 @@ recipe (ChocolateChipDough) {
 }
 
 recipe (ChocolateChipCookie) {
-  string (Module) {oven}
+  string (Module) {Oven}
   list (Inputs) {
     int (ChocolateChipDough) {1}
   }

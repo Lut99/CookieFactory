@@ -6,12 +6,14 @@
 # For a detailed explaination and changelog, see cookie_factory_doc.txt
 
 # TODO:
-#  - 
+#  - Fix weird key error bug in Modules > Human Resources > Manage workers
+#  - Overhaul Human Resources?
 # See 'README.md' for the Roadmap for bigger stages in the upcoming development
 
 import Modules
+from Tools import ModulesList
 from Tools import Worker
-from Globals import MODULES_LIST as ModulesList
+import Globals
 from Globals import register_uuid
 
 
@@ -29,11 +31,13 @@ class Factory():
         # Init modules so we can pass a reference
         self.modules = ModulesList(self.uuid)
         # Add the basic objects
-        self.modules.spawn(Modules.Archive(self.name), special="archive")
-        self.modules.spawn(Modules.Office(budget, self.name), special="office")
-        self.modules.spawn(Modules.HumanResources(self.name), special="hr")
-        self.modules.spawn(Modules.Logistics(self.name), special="logistics")
-        self.modules.spawn(Modules.Depot(self.name), special="depot")
+        self.modules.spawn(Modules.Archive(self.name, self.modules), special="archive")
+        self.modules.spawn(Modules.Office(budget, self.name, self.modules), special="office")
+        self.modules.spawn(Modules.HumanResources(self.name, self.modules), special="hr")
+        self.modules.spawn(Modules.Logistics(self.name, self.modules), special="logistics")
+        self.modules.spawn(Modules.Depot(self.name, self.modules), special="depot")
+
+        self.time = Globals.TIME
 
         self.log("Factory founded")
 
@@ -90,7 +94,7 @@ class Factory():
         if type(text) != str:
             text = str(text)
 
-        self.connection_server.announce(text + end, origin=self.uuid)
+        Globals.CONNECTION_SERVER.announce(text + end, origin=self.uuid)
 
     def stop(self):
         """ Stops the Factory """

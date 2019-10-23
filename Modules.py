@@ -10,11 +10,8 @@ import APIs.calculator as calculator
 import Tools
 from Tools import Date
 from Tools import Position
+import Globals
 from Globals import register_uuid
-from Globals import MODULES_LIST
-from Globals import CONNECTION_SERVER
-from Globals import TIME
-from Globals import MARKET
 
 
 class Storage ():
@@ -41,10 +38,10 @@ class Storage ():
             self.target_modules = target_modules
             self.anti_target_modules = anti_target_modules
 
-    def __init__(self, max_=5000):
+    def __init__(self, max=5000):
         self._storage = {}
         self.rules = {}
-        self.max = max_
+        self.max = max
         self.total = 0
 
     def add_rule(self, id_, rule):
@@ -120,22 +117,22 @@ class Module ():
         some variables, as well as general do_work() and log() functions.
     """
 
-    def __init__(self, name, cost, positions, factory_name, construction_time):
+    def __init__(self, name, cost, positions, factory_name, construction_time, modules):
         self.name = name
         self.cost = cost
         self.construction_time = construction_time
         self.positions = positions
         self.work_done = 0
-        self.founded = self.time.now()
+        self.founded = Globals.TIME.now()
         self.factory_name = factory_name
+        self.modules = modules
 
         # Also generate a unique identifier
         self.uuid = register_uuid(self.name)
 
         # Store references to some globals
-        self.modules = MODULES_LIST
-        self.connection_server = CONNECTION_SERVER
-        self.time = TIME
+        self.connection_server = Globals.CONNECTION_SERVER
+        self.time = Globals.TIME
 
     def do_work(self, workers):
         """
@@ -159,21 +156,21 @@ class Module ():
 # Basic to any factory: manages money, houses the boss
 class Office (Module):
     """ Manages the factory, both stragetically as economically. """
-    def __init__(self, budget, factory_name):
+    def __init__(self, budget, factory_name, modules):
         super().__init__("Headquarters (HQ)", 0, [Position(
             name="CEO",
             workload=2,
             salary=100,
             schedule=[9, 17],
             education_level=3
-        )], factory_name, Date(0, 0, 0, 0))
+        )], factory_name, Date(0, 0, 0, 0), modules)
 
         # Init the type of the module
-        self.type = "office"
+        self.type = "Office"
 
         # Store the budget and the market
         self.budget = budget
-        self.market = MARKET
+        self.market = Globals.MARKET
         # Prepare the production chains
         self.production_chains = []
         # Do the archive
@@ -216,7 +213,7 @@ class Office (Module):
         # Pay until we get to an amount we can buy
         if item not in self.market.buy_list:
             # Cannot buy
-            Tools.CONSOLE.print("Attempted to buy unexisting item from market: {}".format(item))
+            self.log(f"Attempted to buy unexisting item from market: {item}")
             return 0
         price = self.market.buy_list[item]
         # Compute the maximum amount we can buy
@@ -266,7 +263,7 @@ class HumanResources (Module):
         and levelling.
     """
 
-    def __init__(self, factory_name):
+    def __init__(self, factory_name, modules):
         worker_position = Position(
             name="Travel Agent",
             workload=1,
@@ -274,10 +271,10 @@ class HumanResources (Module):
             schedule=[9, 17],
             education_level=1
         )
-        super().__init__("Human Resources (HR)", 0, [worker_position for i in range(5)], factory_name, Date(0, 0, 0, 0))
+        super().__init__("Human Resources (HR)", 0, [worker_position for i in range(5)], factory_name, Date(0, 0, 0, 0), modules)
         self.workers = []
 
-        self.type = "human_resources"
+        self.type = "HumanResources"
 
         # Initialise the archive
         self.modules.archive.add_cabinet("Workers")
@@ -449,14 +446,14 @@ class Logistics (Module):
         of the process.
     """
 
-    def __init__(self, factory_name, modules, connection_server, time):
+    def __init__(self, factory_name, modules):
         super().__init__("Logistics", 0, [Position(
             name="Manager",
             workload=2,
             salary=300,
             schedule=[9, 17],
             education_level=1
-        )], factory_name, Date(0, 0, 0, 0))
+        )], factory_name, Date(0, 0, 0, 0), modules)
         # Add some additional positions
         for _ in range(10):
             self.positions.append(Position(
@@ -469,7 +466,7 @@ class Logistics (Module):
         # Set the amount that can be hauled per forktruck
         self.max_haul = 50
 
-        self.type = "logistics"
+        self.type = "Logistics"
 
     # Override to do work
     def do_work(self, workers):
@@ -619,14 +616,14 @@ class Depot (Module):
         Server as the Factory's outgoing connection to and from the market.
     """
 
-    def __init__(self, factory_name, modules, connection_server, time):
+    def __init__(self, factory_name, modules):
         super().__init__("Depot", 0, [Position(
             name="Truck Driver",
             workload=2,
             salary=300,
             schedule=[9, 17],
             education_level=1
-        ) for i in range(10)], factory_name, Date(0, 0, 0, 0))
+        ) for i in range(10)], factory_name, Date(0, 0, 0, 0), modules)
 
         # Init the storage
         self.storage = Storage(max=float('inf'))
@@ -637,7 +634,7 @@ class Depot (Module):
         # Set the truck max
         self.truck_max = 500
 
-        self.type = "depot"
+        self.type = "Depot"
 
     # Override do_work
     def do_work (self, workers):
@@ -677,21 +674,21 @@ class Archive (Module):
         useful for debugging and making Factory decisions for the Office.
     """
 
-    def __init__(self, factory_name, modules, connection_server, time):
+    def __init__(self, factory_name, modules):
         super().__init__("Archive", 0, [Position(
             name="Clerk",
             workload=0,
             salary=500,
             schedule=[9, 17],
             education_level=2
-        ) for _ in range(5)], factory_name, Date(0, 0, 0, 0))
+        ) for _ in range(5)], factory_name, Date(0, 0, 0, 0), modules)
 
         # Init the _cabinets list
         self._cabinets = {}
         # Init the _ticks list
         self._ticks = []
 
-        self.type = "archive"
+        self.type = "Archive"
 
         # Done
 
@@ -845,20 +842,20 @@ class Oven (Module):
 # OTHER MODULES
 # Test module
 class SimpleProcessingUnit (Module):
-    def __init__(self, name):
+    def __init__(self, name, modules):
         super().__init__(name, "simple_processing_unit", 0, [Position(
             name="Slave",
             workload=1,
             salary=1,
             schedule=[6, 18],
             education_level=1
-        ) for i in range(10)], "", Date(0, 0, 0, 0))
+        ) for i in range(10)], "", Date(0, 0, 0, 0), modules)
 
         self.storage = Storage(max=2500)
         self.storage.add_rule("wheat", Storage.Rule('Wheat', target_stored="[max]", flow=Storage.Rule.In, target_modules=["depot"], anti_target_modules=[]))
         self.storage.add_rule("flour", Storage.Rule('Flour', target_stored="0", flow=Storage.Rule.Out, target_modules=["depot"], anti_target_modules=[]))
 
-        self.type = "simple_processing_unit"
+        self.type = "SimpleProcessingUnit"
 
     def do_work(self, workers):
         """ Does the work """
