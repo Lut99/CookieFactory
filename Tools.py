@@ -2,26 +2,24 @@
 #
 # A file containing tools and stuff
 
-import sys
-import os
 import random
-import numpy as np
 
 import APIs.AdvancedParser as AdvancedParser
-from Errors import FileParseError
+from Globals import register_uuid
+from Globals import CONNECTION_SERVER
+from Globals import ITEMS
+from Globals import RECIPES
+from Globals import NAMES
+from Globals import TIME
+from Globals import MODULES_LIST
 
-# GOBAL VARIABLES
-NAMES = {}
-ITEMS = {}
-RECIPES = []
-PRODUCTION_CHAINS = []
-MODULES = {}
-CONSOLE = None
 
-# CLASSES
-
-# A class to keep track of the time
 class Date ():
+    """
+        The Date class provides a ready-to-use simulation time. Goes by hours.
+    """
+
+    # A few constants
     NameOfMonth = {
         0 : "January",
         1 : "February",
@@ -63,42 +61,51 @@ class Date ():
         # Update the hour etc. as well
         self.hour, self.day, self.month, self.year = Date.depochify(self.epoch)
 
-    # str() handler
     def __str__(self):
+        """ Returns the string representation of the current time """
         return "{:02d}:00:00 {:02d}/{:02d}/{:04d}".format(self.hour, self.day + 1, self.month + 1, self.year)
-    # hash() handler
+
     def __hash__(self):
+        """ Returns the hash of the epoch """
         return hash(self.epoch)
-    # <= handler
+
     def __le__(self, other):
+        """ Handles a comparison with other dates """
         return self.epoch <= other.epoch
-    # < handler
+
     def __lt__(self, other):
+        """ Handles a comparison with other dates """
         return self.epoch < other.epoch
-    # >= handler
+
     def __ge__(self, other):
+        """ Handles a comparison with other dates """
         return self.epoch >= other.epoch
-    # > handler
+
     def __gt__(self, other):
+        """ Handles a comparison with other dates """
         return self.epoch > other.epoch
-    # == handler
+
     def __eq__(self, other):
+        """ Handles a comparison with other dates """
         return self.epoch == other.epoch
-    # != handler
+
     def __ne__(self, other):
+        """ Handles a comparison with other dates """
         return not self.__eq__(other)
-    # + handler
+
     def __add__(self, other):
+        """ Handles a sum with other dates """
         return Date(epoch=self.epoch + other.epoch)
-    # - handler
+
     def __sub__(self, other):
+        """ Handles a sum with other dates """
         epoch = self.epoch - other.epoch
         if epoch < 0:
             raise ValueError("Time cannot be lower than The Beginning (00:00:00 00/00/0000)")
         return Date(epoch=epoch)
 
-    # Advances time by x hours
-    def tick (self, hours=1):
+    def tick(self, hours=1):
+        """ Advances the time by the given amount of hours """
         # Save the current date for the ticked
         prev_hour, prev_day, prev_month, prev_year = self.hour, self.day, self.month, self.year
         # Increment
@@ -114,105 +121,101 @@ class Date ():
         # Return
         return ticked
 
-    # Return a copy of itself
-    def now (self):
+    def now(self):
+        """ Returns a copy """
         return Date(epoch=self.epoch)
 
-    # Get the total number hours
-    def tohours (self):
-        # Simply return the epoch
+    def tohours(self):
+        """ Returns the total number of hours since the epoch """
         return self.epoch
-    # Get the total number days
-    def todays (self, ceiling=False):
-        # Add the days
-        days = self.day
-        # Add the months
-        days += sum([self.DAYS_PER_MONTH[month] for month in range(self.month)])
-        # Add the years
-        days += self.year * self.MONTHS_PER_YEAR * sum(self.DAYS_PER_MONTH.values())
-        if ceiling:
-            # Add the hours
-            days += (1 if self.hour > 0 else 0)
-        return days
-    # Get the total number months
-    def tomonths(self, ceiling=False):
-        # Add the months
-        month = self.month
-        # Add the years
-        month += self.year * self.MONTHS_PER_YEAR
-        if ceiling:
-            # Add the hours & days
-            month += (1 if self.hour > 0 or self.day > 0 else 0)
-        return month
-    # Get the total number years
-    def toyears(self, ceiling=False):
-        if ceiling:
-            # Add the years + any other
-            return self.year + (1 if self.hour > 0 or self.day > 0 or self.month > 0 else 0)
-        else:
-            # Add just the years
-            return self.year
 
-    # Get either the date...
+    def todays(self, ceiling=False):
+        """
+            Returns the total number of days since the epoch. Rounded down
+            by default, but can be rounded up if specified by ceiling.
+        """
+
+        to_return = self.epoch // Date.HOURS_PER_DAY
+        if ceiling and self.epoch % Date.HOURS_PER_DAY > 0:
+            to_return += 1
+        return to_return
+
+    def tomonths(self, ceiling=False):
+        """
+            Returns the total number of months since the epoch. Rounded down
+            by default, but can be rounded up if specified by ceiling.
+        """
+
+        to_return = 0
+        # Keep subtracting hours-in-months from the epoch until we can't fit it
+        #   anymore
+        month = 0
+        epoch = self.epoch
+        month_hours = Date.DAYS_PER_MONTH[month] * Date.HOURS_PER_DAY
+        # Now keep subtracting months and counting
+        while epoch - month_hours >= 0:
+            # Apply the effect
+            epoch -= month_hours
+            to_return += 1
+            # Increment the month and compute the hours that passed that month
+            month = (month + 1) % Date.MONTHS_PER_YEAR
+            month_hours = Date.DAYS_PER_MONTH[month] * Date.HOURS_PER_DAY
+
+        # Check if we should round up
+        if ceiling and epoch > 0:
+            to_return += 1
+
+        # Done
+        return month
+
+    def toyears(self, ceiling=False):
+        """
+            Returns the total number of years since the epoch. Rounded down
+            by default, but can be rounded up if specified by ceiling.
+        """
+
+        hours = Date.HOURS_PER_DAY * sum(Date.DAYS_PER_MONTH.values()) * Date.MONTHS_PER_YEAR
+        to_return = self.epoch // hours
+        if ceiling and self.epoch % hours > 0:
+            to_return += 1
+        return to_return
+
     def getdate(self):
+        """ Returns the date part of the string representation """
         return "{:02d}/{:02d}/{:04d}".format(self.day + 1, self.month + 1, self.year)
-    # ... or the time
+
     def gettime(self):
+        """ Returns the time part of the string representation """
         return "{:02d}:00:00".format(self.hour)
 
-    # Return a random date
-    # The ranges are including on both the min and the max
     @staticmethod
-    def random_date (day_range=(0, "@max"), month_range=(0, "@max"), year_range=(1900,2000)):
-        # Make sure we convert the @max
-        if day_range[1] == "@max":
-            day_range = (day_range[0], max(Date.DAYS_PER_MONTH.values())-1)
-        if month_range[1] == "@max":
-            month_range = (month_range[0], Date.MONTHS_PER_YEAR-1)
-        # Check if they're in the valid ranges
-        if year_range[0] < 0:
-            raise ValueError("Year range must be in the range 0 <= year")
-        if month_range[0] < 0 or month_range[1] > Date.MONTHS_PER_YEAR-1:
-            raise ValueError("Month range must be in the range 0 <= month <= {}".format(Date.MONTHS_PER_YEAR))
-        if day_range[0] < 0 or day_range[1] > max(Date.DAYS_PER_MONTH.values()) - 1:
-            raise ValueError("Day range must be in the range 0 <= day <= {}".format(max(Date.DAYS_PER_MONTH.values()) - 1))
-        # Check if the ranges don't cross
-        if day_range[0] > day_range[1]:
-            raise ValueError("First element of day range must be smaller or equal to it's second element")
-        if month_range[0] > month_range[1]:
-            raise ValueError("First element of month range must be smaller or equal to it's second element")
-        if year_range[0] > year_range[1]:
-            raise ValueError("First element of year range must be smaller or equal to it's second element")
-        # Valid input, compute averages
-        day = random.randint(day_range[0], day_range[1])
-        month = random.randint(month_range[0], month_range[1])
-        year = random.randint(year_range[0],year_range[1])
-        # Convert it to the epoch
-        epoch = Date.epochify(0, day, month, year)
-        # Create the element
-        return Date(epoch = epoch)
-    
-    # Converts hours, days, months and years to hours since epoch
-    @staticmethod
-    def epochify (hours, days, months, years):
-        DAYS_PER_YEAR = sum(Date.DAYS_PER_MONTH.values())
+    def random():
+        """ Returns a random date in the given year range. """
+        return Date(epoch=random.randint(0, 100000000))
 
+    @staticmethod
+    def epochify(hours, days, months, years):
+        """ Converts a set of hours, days, months and year to an epoch time """
         epoch = 0
         # Add the hours
         epoch += hours
         # Add the days
         epoch += days * Date.HOURS_PER_DAY
         # Add the months
-        epoch += sum([Date.DAYS_PER_MONTH[month] * Date.HOURS_PER_DAY for month in range(months)])
+        epoch += sum([Date.DAYS_PER_MONTH[month] for month in range(months)]) * Date.HOURS_PER_DAY
         # Add the years
-        epoch += years * DAYS_PER_YEAR * Date.HOURS_PER_DAY
+        epoch += years * sum(Date.DAYS_PER_MONTH.values()) * Date.HOURS_PER_DAY
 
         # Done
         return epoch
 
     # Converts hours since epoch to hours, days, months and years
     @staticmethod
-    def depochify (epoch):
+    def depochify(epoch):
+        """
+            Converts a given epoch to a set of hours, days, months and years
+        """
+
         # First, take as many years as possible
         HOURS_PER_YEAR = sum(Date.DAYS_PER_MONTH.values()) * Date.HOURS_PER_DAY
         # Do the years...
@@ -229,7 +232,7 @@ class Date ():
         # ...and hours are now epoch :)
         # Done
         return epoch, days, months, years
-    
+
 
 # Class representing the Position a worker can work in
 class Position ():
@@ -240,44 +243,59 @@ class Position ():
         self.schedule = schedule
         self.education_level = education_level
 
-# A class representing a human, to work in the factory
+
 class Worker ():
-    # Class used by Worker to keep track of the Worker's stats
+    """ Represents a human that can work in a factory. """
+
     class Stats ():
-        def __init__(self, education_level="@rnd", enthusiasm="@rnd", base_energy = "@rnd"):
-            self.education_level = education_level if education_level != "@rnd" else random.randint(1,3)
-            self.enthusiasm = enthusiasm if enthusiasm != "@rnd" else random.uniform(0,1)
-            self.base_energy = base_energy if base_energy != "@rnd" else random.randint(150,200)
+        """ A struct for workers to keep track of their stats. """
+        def __init__(self, education_level="@rnd", enthusiasm="@rnd", base_energy="@rnd"):
+            self.education_level = education_level if education_level != "@rnd" else random.randint(1, 3)
+            self.enthusiasm = enthusiasm if enthusiasm != "@rnd" else random.uniform(0, 1)
+            self.base_energy = base_energy if base_energy != "@rnd" else random.randint(150, 200)
             self.experience = 0
 
-    def __init__(self, time, name="@rnd", age="@rnd", stats="@rnd"):
+    def __init__(self, name="@rnd", age="@rnd", stats="@rnd"):
         if name == "@rnd":
-            rnd_i = random.randint(0,len(NAMES['FirstName'])-1)
+            rnd_i = random.randint(0, len(NAMES['FirstName']) - 1)
             name = NAMES['FirstName'][rnd_i] + " " + NAMES['LastName'][rnd_i]
         self.name = name
-        self.age = age if age != "@rnd" else random.randint(18,67)
-        self.b_day = Date.random_date(year_range=(time.toyears() - self.age, time.toyears() - self.age))
+        self.age = age if age != "@rnd" else random.randint(18, 67)
         self.stats = stats if stats != "@rnd" else Worker.Stats()
         self.energy = self.stats.base_energy
         self.on_duty = False
         self.no_salary = 0
 
+        # Generate a random b_day
+        year = TIME.getyears() - age
+        month = random.randint(0, Date.MONTHS_PER_YEAR - 1)
+        day = random.randint(0, Date.DAYS_PER_MONTH[month] - 1)
+        self.b_day = Date(day=day, month=month, year=year)
+
         # Prepare some standard initialisations
         self.module = "__EMPTY"
         self.position = Position()
-        self.started = time.now()
+        self.started = TIME.now()
         self.perfect = -1
         self.salary = -1
 
-    def sleep (self):
-        # Reset energy
+        # Generate a UUID
+        self.uuid = register_uuid(self.name)
+
+    def sleep(self):
+        """ Resets the Worker's energy """
         self.energy = self.stats.base_energy
 
-    def pause (self):
-        # Refresh energy a bit
+    def pause(self):
+        """ Partly refreshes the Worker's energy """
         self.energy += 200
 
-    def work (self):
+    def work(self):
+        """
+            Let's the Worker do some work. Will not work if not on duty or not
+            paid for long enough.
+        """
+
         if not self.on_duty or self.no_salary > 0: return 0
         # Reduce the energy for an as large workload as possible.
         workload = self.position.workload
@@ -290,45 +308,70 @@ class Worker ():
         self.energy = 0
         return 0
 
-    def level_up (self):
-        # Level up by a random amount each day
+    def level_up(self):
+        """ Level up by a random amount each day """
         self.stats.experience += random.uniform(0, 0.01)
 
     def celebrate_birthday(self):
+        """ Age the worker :) """
         self.age += 1
+        self.log(f"Woohoo! I just became {self.age}")
+
+    def log(self, text, end="\n"):
+        """ Logs on the connection_server """
+        if type(text) != str:
+            text = str(text)
+        CONNECTION_SERVER.announce(text + end, origin=self.uuid)
 
 
 # A class representing the global market (This is the static version).
 class Market ():
-    def __init__(self, items, recipes, production_chains):
+    """
+        A class representing the global market. This is the static version,
+        meaning that prices stay the same no matter how much is paid and that
+        resources can be bought and sold indefinitely.
+    """
+
+    def __init__(self):
         # Construct the price lists
-        self.__items = {}
+        self._items = {}
         self.buy_list = {}
         self.sell_list = {}
-        for i in range(len(items)):
-            self.__items[items['Name'][i]] = {'type':items['Type'][i],'buy':items['BuyPrice'][i],'sell':items['SellPrice'][i]}
-            if items['BuyPrice'][i] != "-":
-                self.buy_list[items['Name'][i]] = float(items['BuyPrice'][i])
-            if items['SellPrice'][i] != "-":
-                self.sell_list[items['Name'][i]] = float(items['SellPrice'][i])
-        # Save the recipes and production chains
-        self.recipes = recipes
-        self.production_chains = production_chains
+        for i in range(len(ITEMS)):
+            self._items[ITEMS['Name'][i]] = {
+                'type': ITEMS['Type'][i],
+                'buy': ITEMS['BuyPrice'][i],
+                'sell': ITEMS['SellPrice'][i]
+            }
+            if ITEMS['BuyPrice'][i] != "-":
+                self.buy_list[ITEMS['Name'][i]] = float(ITEMS['BuyPrice'][i])
+            if ITEMS['SellPrice'][i] != "-":
+                self.sell_list[ITEMS['Name'][i]] = float(ITEMS['SellPrice'][i])
+
         # Done
 
-    def buy (self, item, amount, payment):
+    def buy(self, item, amount, payment):
+        """
+            Retrieves stuff from the market, in exchange for enough payment.
+        """
+
         # Check if we have the item
         if item not in self.buy_list:
             return 0
         # Get the total price
         price = self.buy_list[item] * amount
-        # Check if the amount of money given is enough (any more will be happily
-        #   accepted)
+        # Check if the amount of money given is enough (any more will be
+        #   happily accepted)
         if payment >= price:
             return amount
         return 0
 
-    def sell (self, item, amount):
+    def sell(self, item, amount):
+        """
+            Sells stuff to the market, and the amount of money that this
+            generates is returned.
+        """
+
         # Check if the item is bought
         if item not in self.sell_list:
             return 0
@@ -336,10 +379,11 @@ class Market ():
         return self.sell_list[item] * amount
 
 
-# A class for holding and working with the Modules
 class ModulesList ():
-    # Define the iterable
+    """ A class for holding and working with the Modules in a Factory. """
+
     class ModulesListIterable ():
+        """ This class enables iteration over the modules """
         def __init__(self, modules):
             self.__modules = modules
             self.__iterable = modules.__iter__()
@@ -348,119 +392,148 @@ class ModulesList ():
             to_return = self.__iterable.__next__()
             return self.__modules[to_return]
 
-    def __init__(self, time):
-        self.__modules = {}
+    def __init__(self, uuid):
+        self._modules = {}
         # Init the empty 'todo' list
-        self.__constructing = []
+        self._constructing = []
 
-        self.time = time
+        # Store the factory's uuid
+        self.uuid = uuid
 
-    # Allow the external world to directly interfact with __modules
     def __getitem__(self, key):
-        if key in self.__modules:
-            return self.__modules[key]
+        """
+            Allows the external world to directly interact with the internal
+            modules list.
+        """
+
+        if key in self._modules:
+            return self._modules[key]
         return None
 
-    # Also, allow the external world to iterate directely over __modules
     def __iter__(self):
-        return ModulesList.ModulesListIterable(self.__modules)
+        """
+            Allows the external world to iterate directly over the internal
+            modules list.
+        """
 
-    # Handle the __in__ operator
+        return ModulesList.ModulesListIterable(self._modules)
+
     def __contains__(self, elem):
+        """ Handles the 'in' operator """
         if type(elem) == str:
             # If it's a string, check that instead
-            return elem in self.__modules
+            return elem in self._modules
         else:
             # If it's a module, check direct
-            return elem.name in self.__modules
+            return elem.name in self._modules
         return False
-    
-    # Handle len()
+
     def __len__(self):
-        return len(self.__modules)
+        """ Handles the 'len()' operator """
+        return len(self._modules)
 
-    # Spawn a new module (no construction, no pay)
     def spawn(self, module, special="None"):
-        if module.name in self.__modules or module.name in self.__constructing:
-            print("Could not spawn '{}', because a module with that name already exists".format(module.name))
-            return
-        # Add it directly
-        self.__modules[module.name] = module
-        if special == "office":
-            self.office = module
-        elif special == "hr":
-            self.hr = module
-        elif special == "logistics":
-            self.logistics = module
-        elif special == "depot":
-            self.depot = module
-        elif special == "archive":
-            self.archive = module
+        """
+            Spawns a new module. Identical to building, except that there is no
+            construction time and that no money has to be paid.
+        """
 
-    # Add a module the official way (construction & pay)
+        if module.name in self._modules or module.name in self._constructing:
+            self.log(f"Could not spawn '{module.name}', because a module with that name already exists")
+            return
+
+        # Add it directly
+        self._modules[module.name] = module
+        # If given, add the office to their own field
+        if special != "None":
+            if hasattr(self, special):
+                self.log(f"Could not link module '{module.name}' to the field '{special}' because that field already exists.")
+                return
+            setattr(self, special, module)
+        self.log(f"Spawned a new {module.type}, '{module.name}'.")
+
     def add(self, module):
-        if module.name in self.__modules or module.name in self.__constructing:
-            print("Could not begin construction on '{}', because a module with that name already exists".format(module.name))
+        """
+            Creates a module. This process deducts money from the office (has
+            to be present) and takes into account the construction time it
+            takes to build a module.
+        """
+
+        if module.name in self._modules or module.name in self._constructing:
+            self.log(f"Could not begin construction on '{module.name}', because a module with that name already exists")
             return
         if self.office.pay(module.cost) == 0:
-            print("Could not begin construction on '{}', because the factory doesn't have enough money left".format(module.name))
+            self.log(f"Could not begin construction on '{module.name}', because the factory doesn't have enough money left")
         # Add it to the list of constructing modules
-        self.__constructing.append({'module':module,'start':self.time.now(),'stop':self.time + module.construction_time})
-        print("Begun construction on a new {}, '{}', at the expense of {} pounds.".format(module.type, module.name, module.cost))
+        self._constructing.append({
+            'module': module,
+            'start': TIME.now(),
+            'stop': TIME + module.construction_time
+        })
+        self.log(f"Begun construction on a new {module.type}, '{module.name}', at the expense of {module.cost} pounds.")
 
-    # Advance a day on the construction timers
-    def construct (self):
-        to_remove = []
-        for key in self.__constructing:
-            m = self.__constructing[key]
+    def construct(self):
+        """ Advance construction on the modules that are being constructed. """
+        for key in self._constructing.copy():
+            m = self._constructing[key]
             if m['start'] + self.time >= m['stop']:
                 # Stop the construction!
-                print("Finished construction of '{}'".format(m['module'].name))
-                self.__modules[m['module'].name] = m['module']
-                to_remove.append(m)
-        for m in to_remove: self.__constructing.remove(m)
+                self.log(f"Finished construction of '{m['module'].name}'")
+                self._modules[m['module'].name] = m['module']
+                self._constructing.remove(m)
 
-    # Returns all modules
-    def getall (self):
-        to_return = {}
-        for m in self.__modules:
-            to_return[m] = self.__modules[m]
-        return to_return
+    def getall(self):
+        """ Returns a copy of the inner _modules list """
+        return self._modules.copy()
+
+    def log(self, text, end="\n"):
+        """ Logs on the connection_server """
+        if type(text) != str:
+            text = str(text)
+        CONNECTION_SERVER.announce(text + end, origin=self.uuid)
 
 
-# Classes for telling the factory how to make a product
+# RECIPE & PRODCHAIN CLASSES
 class Recipe ():
+    """ Struct that defines a recipe. """
     def __init__(self, name, module, inputs, outputs):
         self.name = name
         self.module = module
         self.inputs = inputs
         self.outputs = outputs
+
+
 class ProductionChain ():
+    """ Struct that defines a production chain. """
     def __init__(self, name, modules):
         self.name = name
         self.modules = modules
 
-# TOOLS
 
-# Checks if given element is convertable to given type
+# TOOLS
 def isType(elem, t):
+    """ Checks if given element is convertible to given type """
     try:
         t(elem)
         return True
     except ValueError:
         return False
 
-# SAVE and LOAD FUNCTIONS
 
-# Loads a CSV
-def load_csv (path, elem_type="*"):
+# SAVE and LOAD FUNCTIONS
+def load_csv(path, elem_type="*"):
+    """
+        Loads a CSV into a dict. If elem_type is anything but '*', it tries
+        to convert all the values to that type using elem_type().
+    """
+
     # Try to open and load the text
     raw_text = ""
     try:
         with open(path, "r") as f:
             raw_text = f.read()
     except FileNotFoundError:
-        raise FileNotFoundError("Could not read file '{}': not found".format(path))
+        raise FileNotFoundError(f"Could not read file '{path}': not found")
     # Parse the raw text
     csv_data = {}
     raw_text = raw_text.split("\n")
@@ -507,9 +580,15 @@ def load_csv (path, elem_type="*"):
     # Done, return
     return csv_data
 
-# The recipe parser
-def recipe_parser (name, text, DataTypes):
-    # First, parse as list
+
+# PARSERS
+def recipe_parser(name, text, DataTypes):
+    """
+        Recipe parser for the AdvancedParser. Basically a dict parser with
+        extra checks.
+    """
+
+    # First, parse as dict
     recipe = AdvancedParser.dict_parser(name, text, DataTypes)
 
     if 'Module' not in recipe:
@@ -529,28 +608,31 @@ def recipe_parser (name, text, DataTypes):
             raise AdvancedParser.DataTypeValueException("Could not parse recipe '{}' as recipe: Expected field '{}' to be {}, got {}".format(name, field, t, type(recipe[field])))
     # Done
     return recipe
-def chain_parser (name, text, DataTypes):
-    # First, parse as list
-    chain = AdvancedParser.dict_parser(name, text, DataTypes)
 
-    # Done
-    return chain
+
 def module_parser(name, text, DataTypes):
+    """
+        Module parser for the AdvancedParser. Basically a dict parser, but with
+        extra checks.
+    """
+
     # First, parse as list
     module = AdvancedParser.dict_parser(name, text, DataTypes)
 
-    fields = [('input', MODULES), ('recipe', [recipe.name for recipe in RECIPES]), ('output', MODULES)]
+    fields = [('input', MODULES_LIST), ('recipe', [recipe.name for recipe in RECIPES]), ('output', MODULES_LIST)]
     for f, ls in fields:
         if f not in module:
-            raise AdvancedParser.DataTypeValueException("Could not parse module '{}' as module: Missing field '{}'".format(name, f))
+            raise AdvancedParser.DataTypeValueException(f"Could not parse module '{name}' as module: Missing field '{f}'")
         # Check if the value is valid
         if module[f] not in ls and (f == 'recipe' or module[f] != "Market"):
-            raise AdvancedParser.DataTypeValueException("Could not parse module '{}' as module: Value '{}' in '{}' does not exist".format(name, module[f], f))
+            raise AdvancedParser.DataTypeValueException(f"Could not parse module '{name}' as module: Value '{module[f]}' in '{f}' does not exist")
     # Done
     return module
 
-# Load a .recipes file
-def load_recipes(path, Items):
+
+def load_recipes(path):
+    """ Load a .recipes file using the AdvancedParser """
+
     # Load the recipes
     recipes_dict = AdvancedParser.parse(path, customDataTypes=[AdvancedParser.DataType('recipe', recipe_parser)])
     # Convert to Recipe objects
@@ -563,9 +645,11 @@ def load_recipes(path, Items):
     # Done, return
     return recipes
 
-def load_production_chains (path):
+
+def load_production_chains(path):
+    """ Load a .prodchain file using the AdvancedParser """
     # Load the production chain
-    prodchain_dict = AdvancedParser.parse(path, customDataTypes=[AdvancedParser.DataType('productionChain', chain_parser), AdvancedParser.DataType('module', module_parser)])
+    prodchain_dict = AdvancedParser.parse(path, customDataTypes=[AdvancedParser.DataType('productionChain', AdvancedParser.dict_parser), AdvancedParser.DataType('module', module_parser)])
     # Convert to ProductionChain objects
     production_chains = []
     for chain in prodchain_dict:
@@ -575,37 +659,3 @@ def load_production_chains (path):
 
     # Done, return
     return production_chains
-
-# CONSOLE
-class Console:
-    def __init__(self, max_lines=100):
-        self.max_lines = 100
-        self.__lines = ""
-    
-    def write(self, text):
-        self.print(text, end="")
-    
-    def print(self, text, end="\n"):
-        if type(text) != str:
-            text = str(text)
-        self.__lines += text + end
-        
-    def flush (self):
-        # Return the text and empty
-        temp = self.__lines
-        self.__lines = ""
-        return temp
-
-class Command:
-    def __init__(self, *args, description="<UNDEF>", executer=None):
-        if executer == None:
-            raise ValueError("No executer specified")
-        
-        # Parse the arguments
-        self.triggers = []
-        for arg in args:
-            self.triggers.append(arg)
-        
-        # Save the description and executer
-        self.description = description
-        self.execute = executer

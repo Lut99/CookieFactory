@@ -9,46 +9,40 @@
 #  - 
 # See 'README.md' for the Roadmap for bigger stages in the upcoming development
 
-import time
 import Modules
-from Modules import UUID_MAP
-import numpy as np
-import random
-import uuid
-
-import Tools
-from Tools import Date
 from Tools import Worker
-from Tools import Market
-from Tools import ModulesList
-from Tools import NAMES as Names
+from Globals import MODULES_LIST as ModulesList
+from Globals import register_uuid
+
 
 # THE FACTORRRRYYY
-class Factory ():
+class Factory():
+    """ The Factory class. """
     # Init
-    def __init__(self, name, budget, type_, market, connection_server, time):
+    def __init__(self, name, budget, type_):
         self.name = name
         self.type = type_
-        self.market = market
-        self.time = time
-        self.connection_server = connection_server
-        # Init modules so we can pass a reference
-        self.modules = ModulesList(self.time)
-        # Add the basic objects
-        self.modules.spawn(Modules.Archive(self.name, self.modules, self.connection_server, self.time), special="archive")
-        self.modules.spawn(Modules.Office(budget, self.market, self.name, self.modules, self.connection_server, self.time), special="office")
-        self.modules.spawn(Modules.HumanResources(self.name, self.modules, self.connection_server, self.time), special="hr")
-        self.modules.spawn(Modules.Logistics(self.name, self.modules, self.connection_server, self.time), special="logistics")
-        self.modules.spawn(Modules.Depot(self.name, self.modules, self.connection_server, self.time), special="depot")
 
         # Create a uuid
-        self.uuid = str(uuid.uuid1())
-        UUID_MAP[self.uuid] = self.name
+        self.uuid = register_uuid(self.name)
+
+        # Init modules so we can pass a reference
+        self.modules = ModulesList(self.uuid)
+        # Add the basic objects
+        self.modules.spawn(Modules.Archive(self.name), special="archive")
+        self.modules.spawn(Modules.Office(budget, self.name), special="office")
+        self.modules.spawn(Modules.HumanResources(self.name), special="hr")
+        self.modules.spawn(Modules.Logistics(self.name), special="logistics")
+        self.modules.spawn(Modules.Depot(self.name), special="depot")
 
         self.log("Factory founded")
 
     # MAIN
-    def run (self, ticked):
+    def run(self, ticked):
+        """
+            Is called after each simulated hour, to run the factory processes.
+        """
+
         # An hour has ended
 
         # Manage the worker's shift
@@ -76,24 +70,28 @@ class Factory ():
             # A month ended
 
             # Fire, hire and pay new and / or old workers
-            self.modules.hr.manage_workers([Worker(self.time) for i in range(10)])
+            self.modules.hr.manage_workers([Worker() for i in range(10)])
 
             # Do the production chain evaluation
             self.modules.office.evaluate()
         if 'years' in ticked:
             # A year ended
             pass
-        
+
         # Call archive managers
         self.modules.archive.manage(ticked)
 
     # Threading functions
-    def log (self, text, end="\n"):
+    def log(self, text, end="\n"):
+        """
+            Logs over the internal connection server.
+        """
+
         if type(text) != str:
             text = str(text)
 
         self.connection_server.announce(text + end, origin=self.uuid)
 
-    def stop (self):
+    def stop(self):
+        """ Stops the Factory """
         self.log("Successfully closed")
-

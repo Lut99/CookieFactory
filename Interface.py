@@ -11,9 +11,10 @@ import select
 import threading
 import time
 import struct
-import uuid
 
-from Modules import UUID_MAP
+from Globals import UUID_MAP
+from Globals import TIME
+from Globals import register_uuid
 from CFNPv2_Message import Message
 import CFNPv2_Codes as CFNP
 
@@ -164,7 +165,7 @@ class ConnectionServer (threading.Thread):
         World using Interfaces.
     """
 
-    def __init__(self, time, ip_address="", port=8080):
+    def __init__(self, ip_address="", port=8080):
         threading.Thread.__init__(self)
         self.name = "ConnectionServer"
 
@@ -176,10 +177,9 @@ class ConnectionServer (threading.Thread):
         self.announcements = TerminalData()
 
         # Store the simulated time object
-        self.time = time
+        self.time = TIME
         # Store a uuid for server messages
-        self.uuid = str(uuid.uuid1())
-        UUID_MAP[self.uuid] = "SERVER"
+        self.uuid = register_uuid("SERVER")
 
         # Initialise the server
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

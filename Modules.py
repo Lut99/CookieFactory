@@ -5,24 +5,35 @@
 #   to purchase so they can make additional or more stuff.
 
 import random
-import sys
-import uuid
 
 import APIs.calculator as calculator
 import Tools
 from Tools import Date
 from Tools import Position
-
-# Declare the UUID list
-UUID_MAP = {}
+from Globals import register_uuid
+from Globals import MODULES_LIST
+from Globals import CONNECTION_SERVER
+from Globals import TIME
+from Globals import MARKET
 
 
 class Storage ():
+    """
+        A place for modules to store items in. Additionally, can use rules to
+        employ the Logistics System to move goods in an automated fashion.
+    """
+
     class Rule ():
+        """
+            Defines a rule used to determine what goes in and out of this
+            Storage
+        """
+
         In = "__IN"
         Out = "__OUT"
         InOut = "__IN_OUT"
-        def __init__(self, item, target_stored = "[max]", flow = InOut, target_modules = [ "*" ], anti_target_modules = [ "depot" ]):
+
+        def __init__(self, item, target_stored="[max]", flow=InOut, target_modules=["*"], anti_target_modules=["depot"]):
             self.item = item
             # Allow the module to enter a variable target (e.g. [max]/2)
             self.form = calculator.parse(target_stored, verbose=False)
@@ -30,81 +41,88 @@ class Storage ():
             self.target_modules = target_modules
             self.anti_target_modules = anti_target_modules
 
-    def __init__(self, max = 5000):
-        self.__storage = {}
+    def __init__(self, max_=5000):
+        self._storage = {}
         self.rules = {}
-        self.max = max
+        self.max = max_
         self.total = 0
 
-    def add_rule (self, id, rule):
-        self.rules[id] = rule
+    def add_rule(self, id_, rule):
+        """ Add a routing rule """
+        self.rules[id_] = rule
 
-    def get_rule (self, id):
-        if id not in self.rules: return None
-        return self.rules[id]
+    def get_rule(self, id_):
+        """ Gets a routing rule with a certain ID """
+        if id_ not in self.rules:
+            return None
+        return self.rules[id_]
 
-    def remove_rule (self, id):
-        self.rules.pop(id, None)
+    def remove_rule(self, id_):
+        """ Removes a rule with a certain ID """
+        self.rules.pop(id_, None)
 
     def __getitem__(self, key):
-        if key not in self.__storage:
-            return 0
-        return self.__storage[key]
+        """
+            Grants access to the internal storage. Returns '0' if the item is
+            not present in this storage.
+        """
 
-    def store (self, item, amount):
-        if item not in self.__storage:
+        if key not in self._storage:
+            return 0
+        return self._storage[key]
+
+    def store(self, item, amount):
+        """
+            Adds X items of given type to the store. If more than the maximum
+            is added, the amount that wouldn't fit is returned.
+        """
+
+        if item not in self._storage:
             # If we're already at maximum, return the amount as the overflow
             #   (nothing fits)
             if self.stored == self.max:
                 return amount
             # Init new item
-            self.__storage[item] = 0
+            self._storage[item] = 0
         # Compute the overflow
-        overflow = (self.stored() + amount) - self.max
-        if overflow < 0: overflow = 0
+        overflow = (self.total + amount) - self.max
+        if overflow < 0:
+            overflow = 0
         # Store the amount
-        self.__storage[item] += amount - overflow
+        self._storage[item] += amount - overflow
         self.total += amount - overflow
         return overflow
 
-    def retrieve (self, item, amount):
-        # If the item doesn't exist, we cannot store anything
-        if item not in self.__storage: return
+    def retrieve(self, item, amount):
+        """
+            Gets (and removes) given amount of given item from storage. Returns
+            the actual amount retrieved.
+        """
+
+        # If the item doesn't exist, we cannot retrieve anything
+        if item not in self._storage:
+            return 0
         # Compute the underflow
-        underflow = amount - self.__storage[item]
-        if underflow < 0: underflow = 0
+        underflow = amount - self._storage[item]
+        if underflow < 0:
+            underflow = 0
         # Get the amount
-        self.__storage[item] -= amount - underflow
+        self._storage[item] -= amount - underflow
         self.total -= amount - underflow
         return amount - underflow
 
-    # Return total amount stored
-    def stored (self):
-        return self.total
-
-    # Prints the storage contents in a pretty way
-    def print (self):
-        # First, print some lines
-        print("-" * 50)
-        print("Storage contents:")
-        for item in self.__storage:
-            print(" - {}: {}".format(item, self.__storage[item]))
-        if self.stored() == 0:
-            print("   (None)")
-        print("Total: {}/{} units stored".format(self.stored(), self.max))
-        print("-" * 50)
+    # TODO: Allow requesting storage data over the network (prolly need new CFNP entry)
 
 
 class Module ():
-    def __init__(self, name, cost, positions, factory_name, modules, connection_server, time, construction_time):
-        if name == type:
-            print("Name of module cannot equal it's type")
-            return
+    """
+        Abstract for a Module. Already handles storing and initializing of
+        some variables, as well as general do_work() and log() functions.
+    """
+
+    def __init__(self, name, cost, positions, factory_name, construction_time):
         self.name = name
         self.cost = cost
-        self.modules = modules
-        self.connection_server = connection_server
-        self.time = time
         self.construction_time = construction_time
         self.positions = positions
         self.work_done = 0
@@ -112,36 +130,50 @@ class Module ():
         self.factory_name = factory_name
 
         # Also generate a unique identifier
-        self.uuid = str(uuid.uuid1())
-        UUID_MAP[self.uuid] = self.name
+        self.uuid = register_uuid(self.name)
+
+        # Store references to some globals
+        self.modules = MODULES_LIST
+        self.connection_server = CONNECTION_SERVER
+        self.time = TIME
 
     def do_work(self, workers):
+        """
+            Lets all (given) workers do the work they were hired to do, and
+            collect that in the work pool.
+        """
+
         for w in workers:
             # Get the workload
             self.work_done += w.work()
 
     def log(self, text, end="\n"):
+        """ Logs on the connection_server """
         if type(text) != str:
             text = str(text)
         self.connection_server.announce(text + end, origin=self.uuid)
+
 
 # ADMINISTRATIVE MODULES
 
 # Basic to any factory: manages money, houses the boss
 class Office (Module):
-    type = "office"
-
-    def __init__(self, budget, market, factory_name, modules, connection_server, time):
+    """ Manages the factory, both stragetically as economically. """
+    def __init__(self, budget, factory_name):
         super().__init__("Headquarters (HQ)", 0, [Position(
             name="CEO",
             workload=2,
             salary=100,
-            schedule=[ 9, 17 ],
-            education_level = 3
-        )], factory_name, modules, connection_server, time, Date(0,0,0,0))
+            schedule=[9, 17],
+            education_level=3
+        )], factory_name, Date(0, 0, 0, 0))
 
+        # Init the type of the module
+        self.type = "office"
+
+        # Store the budget and the market
         self.budget = budget
-        self.market = market
+        self.market = MARKET
         # Prepare the production chains
         self.production_chains = []
         # Do the archive
@@ -155,46 +187,62 @@ class Office (Module):
 
         self.modules.archive.add_tick(self.manage_archive)
 
-    def check_balance (self):
+    def check_balance(self):
+        """ Returns the amount of money the factory has left to spend """
         return self.budget
 
-    def deposit (self, amount):
+    def deposit(self, amount):
+        """ Stores a given amount of money to the factory's accounts """
         self.budget += amount
 
-    def pay (self, amount):
+    def pay(self, amount):
+        """
+            Subtract a given amount from the factory's accounts. Returns how
+            many is paid if the server has enough budget, or else 0.
+        """
+
         if self.budget >= amount:
             self.budget -= amount
             return amount
         return 0
 
-    # Buy resources
     def buy_resources(self, item, amount):
+        """
+            Attempts to buy the given amount of the given item from the global
+            market. Tries to buy as much as possible, and returns the number of
+            items actually bought.
+        """
+
         # Pay until we get to an amount we can buy
         if item not in self.market.buy_list:
             # Cannot buy
             Tools.CONSOLE.print("Attempted to buy unexisting item from market: {}".format(item))
             return 0
         price = self.market.buy_list[item]
-        while self.budget < price * amount:
-            amount -= 1
+        # Compute the maximum amount we can buy
+        max_amount = self.budget // price
+        if amount > max_amount:
+            amount = max_amount
         # Now get the money from the budget and use that to buy the items
         return self.market.buy(item, amount, self.pay(price * amount))
 
     # Sell resources
     def sell_resources(self, item, amount):
-        # Sell it the market
+        """ Sell the given amount of the given item to the market """
         self.deposit(self.market.sell(item, amount))
         # Manage the counter for the archive
         self.modules.archive.update('Finance', 'Total Sold', 1)
 
     # Evaluate if we need more production chains
-    def evaluate (self):
+    def evaluate(self):
+        """ Function that will decide important factory processes. TBD. """
         if len(self.production_chains) == 0:
             pass
 
     # Archive certain stats
     @staticmethod
-    def manage_archive (modules, ticked):
+    def manage_archive(modules, ticked):
+        """ Periodically updates the archive. """
         if 'days' in ticked:
             # New day
             modules.archive.update('Finance', 'Daily Balances', modules.office.check_balance())
@@ -213,18 +261,23 @@ class Research (Module):
 
 # A requirement for any factory. Manages staff and salaries.
 class HumanResources (Module):
-    type = "human_resources"
+    """
+        Manages the workers in the factory, including pay, hiring and fireing,
+        and levelling.
+    """
 
-    def __init__(self, factory_name, modules, connection_server, time):
+    def __init__(self, factory_name):
         worker_position = Position(
             name="Travel Agent",
             workload=1,
             salary=50,
-            schedule=[ 9, 17 ],
-            education_level = 1
+            schedule=[9, 17],
+            education_level=1
         )
-        super().__init__("Human Resources (HR)", 0, [worker_position for i in range(5)], factory_name, modules, connection_server, time, Date(0,0,0,0))
+        super().__init__("Human Resources (HR)", 0, [worker_position for i in range(5)], factory_name, Date(0, 0, 0, 0))
         self.workers = []
+
+        self.type = "human_resources"
 
         # Initialise the archive
         self.modules.archive.add_cabinet("Workers")
@@ -234,12 +287,26 @@ class HumanResources (Module):
 
     # Counts position in a module
     def count_positions(self, positions, position):
+        """
+            Returns the number of available positions of the given type in the
+            given module.
+        """
+
         c = 0
         for p in positions:
             c += (1 if p.name == position else 0)
         return c
 
-    def manage_workers (self, available_workers):
+    def manage_workers(self, available_workers):
+        """
+            Hires and fires workers in the ModulesList. Also handles the pay.
+            Reasons for fireing could be because a worker quits (no salary
+            paid), a worker is too old (pension) or a worker hasn't worked
+            enough.
+            Additionally, for each worker in this module, we can hire a new
+            worker for another module.
+        """
+
         # First, check if any should be fired for some reason
         modules_count = {}
         for w in self.workers:
@@ -301,7 +368,12 @@ class HumanResources (Module):
                 # We gotta let him go :(
                 self.fire(w, "too many workers")
 
-    def manage_shifts (self):
+    def manage_shifts(self):
+        """
+            Puts workers on and off duty according to the shifts in the
+            schedule.
+        """
+
         for w in self.workers:
             if self.time.hour == w.position.schedule[0] - 1:
                 # Put the worker on duty
@@ -313,14 +385,16 @@ class HumanResources (Module):
                 w.sleep()
 
     # Called at the end of a day to evaluate workers
-    def evaluate (self):
+    def evaluate(self):
+        """ Check if any workers went level up """
         for w in self.workers:
             if w.energy > 0:
                 w.perfect += 1
                 # Also level up the worker
                 w.level_up()
 
-    def hire (self, worker, module, position):
+    def hire(self, worker, module, position):
+        """ Hires a worker for a given module and a given position """
         if worker.stats.education_level >= position.education_level:
             # Hire it
             worker.module = module.name
@@ -333,29 +407,33 @@ class HumanResources (Module):
             return True
         return False
 
-    def fire (self, worker, reason):
+    def fire(self, worker, reason):
+        """ Fires a worker for a given reason """
         # Remove the worker
         self.workers.remove(worker)
         # Now add his name and reason for fireing
         self.modules.archive.update("Workers", "History", {
-            'name' : worker.name,
-            'module' : worker.module,
-            'position' : worker.position.name,
-            'days_employed' : (self.time - worker.started).todays(),
-            'reason' : reason
+            'name': worker.name,
+            'module': worker.module,
+            'position': worker.position.name,
+            'days_employed': (self.time - worker.started).todays(),
+            'reason': reason
         })
         self.modules.archive.update("Workers", "Fired", 1)
 
-    # Returns worker with given name
     def get_worker(self, name):
+        """ Returns a worker with the given name """
         # Loop through the workers
         for w in self.workers:
             if w.name == name:
                 return w
         return None
 
-    # Returns all workers working in a specific model and / or position
     def get_workers(self, module="*", position="*"):
+        """
+            Returns all workers working in a specific model and / or position
+        """
+
         # Assemble all workers with the module
         to_return = []
         for w in self.workers:
@@ -366,31 +444,52 @@ class HumanResources (Module):
 
 # Manages resource flow
 class Logistics (Module):
-    type = "logistics"
+    """
+        Moves items around in the factory, and is therefore the backbone
+        of the process.
+    """
 
     def __init__(self, factory_name, modules, connection_server, time):
-        super().__init__("Logistics", 0, [ Position(
-            name = "Manager",
-            workload = 2,
-            salary = 300,
-            schedule = [ 9, 17 ],
-            education_level = 1
-        ) ], factory_name, modules, connection_server, time, Date(0,0,0,0))
+        super().__init__("Logistics", 0, [Position(
+            name="Manager",
+            workload=2,
+            salary=300,
+            schedule=[9, 17],
+            education_level=1
+        )], factory_name, Date(0, 0, 0, 0))
         # Add some additional positions
         for _ in range(10):
             self.positions.append(Position(
-                name = "Forklift Operator",
-                workload = 1,
-                salary = 200,
-                schedule = [ 9, 17 ],
-                education_level = 1
+                name="Forklift Operator",
+                workload=1,
+                salary=200,
+                schedule=[9, 17],
+                education_level=1
             ))
         # Set the amount that can be hauled per forktruck
         self.max_haul = 50
 
+        self.type = "logistics"
+
     # Override to do work
-    def do_work (self, workers):
-        if len(workers) == 0: return
+    def do_work(self, workers):
+        """
+            Does the logistics. The system adheres to the following rules:
+              - For every module with a storage (that isn't the depot):
+                - Check which rules are present
+                - Determine how much we can take from that module
+                - Determine how much that module requests
+              - Then, try to resolve each request with what we can take from
+                modules
+              - If a match has been found, haul it using a worker's workforce
+              - Then, do the remainder of the request using the depot
+                - ...unless a module has specifically blacklisted / not
+                  whitelisted it
+        """
+
+        if len(workers) == 0:
+            # Nothing to do if no workers are present
+            return
         # For every rule in every valid storage, do...
         requests = []
         offers = []
@@ -452,7 +551,7 @@ class Logistics (Module):
             requests_overflow = requests_overflow[1:]
             # Buy it from the depot if it's in their rule
             if 'depot' in r['targets'] or ('*' in r['targets'] and
-                                        'depot' not in r['antitargets']):
+                                           'depot' not in r['antitargets']):
                 # Transport!
                 hauled = self.transport(self.modules.depot, r['module'].storage, r['item'], r['amount'], self.max_haul * workers[worker].work())
                 r['amount'] -= hauled
@@ -470,7 +569,7 @@ class Logistics (Module):
             offers = offers[1:]
             # Sell it to the depot if it's in their rule
             if 'depot' in o.target_modules or ('*' in o.target_modules and
-                                        'depot' not in o.anti_target_modules):
+                                               'depot' not in o.anti_target_modules):
                 # Transport!
                 hauled = self.transport(o['module'].storage, self.modules.depot, r['item'], r['amount'], self.max_haul * workers[worker].work())
                 o['amount'] -= hauled
@@ -483,22 +582,26 @@ class Logistics (Module):
             else:
                 offers.append(o)
 
-
-    # Checks to see whether offer is in the target range of request
-    def isTarget (self, request, offer):
+    def isTarget(self, request, offer):
+        """ Checks whether offer is in the target range of request """
         return (
             (request['item'] == offer['item'] or offer['item'] == "*") and
             (offer['module'].name in request.target_modules or
-            offer['module'].type in request.target_modules or
-            "*" in request.target_modules) and
+             offer['module'].type in request.target_modules or
+             "*" in request.target_modules) and
             (offer['module'].name not in request.anti_target_modules and
-            offer['module'].type not in request.anti_target_modules and
-            "*" not in request.anti_target_modules) and
+             offer['module'].type not in request.anti_target_modules and
+             "*" not in request.anti_target_modules) and
             request['module'].name != offer['module'].name
         )
 
     # Does the physical transport
-    def transport (self, storage_from, storage_to, item, amount, max):
+    def transport(self, storage_from, storage_to, item, amount, max):
+        """
+            Transport given amount with the given amount from one storage to
+            the other
+        """
+
         # It's a match, transport
         to_transport = amount if amount < max else max
         got = storage_from.retrieve(item, to_transport)
@@ -506,23 +609,24 @@ class Logistics (Module):
         overflow = storage_to.store(item, got)
         # Return the overflow
         storage_from.store(item, overflow)
-        #print("Transported {} from item {}".format(got - overflow, item))
         # Return that which we have successfuly stored
         return got - overflow
 
 
 # Serves as the connection between the factory and the (global) market.
 class Depot (Module):
-    type = "depot"
+    """
+        Server as the Factory's outgoing connection to and from the market.
+    """
 
     def __init__(self, factory_name, modules, connection_server, time):
-        super().__init__("Depot", 0, [ Position(
+        super().__init__("Depot", 0, [Position(
             name="Truck Driver",
-            workload = 2,
-            salary = 300,
-            schedule = [ 9, 17 ],
-            education_level = 1
-        ) for i in range(10)], factory_name, modules, connection_server, time, Date(0,0,0,0))
+            workload=2,
+            salary=300,
+            schedule=[9, 17],
+            education_level=1
+        ) for i in range(10)], factory_name, Date(0, 0, 0, 0))
 
         # Init the storage
         self.storage = Storage(max=float('inf'))
@@ -532,6 +636,8 @@ class Depot (Module):
 
         # Set the truck max
         self.truck_max = 500
+
+        self.type = "depot"
 
     # Override do_work
     def do_work (self, workers):
@@ -566,115 +672,138 @@ class Depot (Module):
 
 # Saves all sort of stats about the factory
 class Archive (Module):
-    type = "archive"
+    """
+        The Archive records all sort of information about the factory, and is
+        useful for debugging and making Factory decisions for the Office.
+    """
 
     def __init__(self, factory_name, modules, connection_server, time):
         super().__init__("Archive", 0, [Position(
             name="Clerk",
             workload=0,
             salary=500,
-            schedule=[9,17],
+            schedule=[9, 17],
             education_level=2
-        ) for _ in range(5)], factory_name, modules, connection_server, time, Date(0,0,0,0))
+        ) for _ in range(5)], factory_name, Date(0, 0, 0, 0))
 
-        # Init the __cabinets list
-        self.__cabinets = {}
-        # Init the __ticks list
-        self.__ticks = []
-        
+        # Init the _cabinets list
+        self._cabinets = {}
+        # Init the _ticks list
+        self._ticks = []
+
+        self.type = "archive"
+
         # Done
-    
+
     def add_cabinet(self, name):
-        if name in self.__cabinets:
-            Tools.CONSOLE.print("[Archive] Attempting to add cabinet that already exists: {}".format(name))
+        """ Creates a new cabinet for a module to log information in. """
+        if name in self._cabinets:
+            self.log(f"Attempting to add cabinet that already exists: {name}")
             return False
 
-        self.__cabinets[name] = {}
+        self._cabinets[name] = {}
         return True
 
-    def remove_cabinet (self, name):
-        if name not in self.__cabinets:
-            Tools.CONSOLE.print("[Archive] Attempting to remove cabinet that does not exists: {}".format(name))
+    def remove_cabinet(self, name):
+        """ Removes a cabinet for a module. """
+        if name not in self._cabinets:
+            self.log(f"Attempting to remove cabinet that does not exists: {name}")
             return False
 
-        del self.__cabinets[name]
+        del self._cabinets[name]
         return True
-    
-    def add_tick (self, tick_handler):
-        self.__ticks.append(tick_handler)
 
-    def remove_tick (self, tick_handler):
-        self.__ticks.remove(tick_handler)
+    def add_tick(self, tick_handler):
+        """ Register a tick handler that gets called every time tick """
+        self._ticks.append(tick_handler)
 
-    def manage (self, ticked):
-        # For each clerk, manage it
-        for tick_handler in self.__ticks:
+    def remove_tick(self, tick_handler):
+        """ Unregister a tick handler that gets called every time tick """
+        self._ticks.remove(tick_handler)
+
+    def manage(self, ticked):
+        """ Handles all ticks. Can only do one tick for each clerk hired. """
+        for tick_handler in self._ticks:
             tick_handler(self.modules, ticked)
         
-    def set (self, cabinet, shelf, value):
-        if cabinet not in self.__cabinets:
+    def set(self, cabinet, shelf, value):
+        """ Set the value of a certain shelf within a cabinet. """
+        if cabinet not in self._cabinets:
             Tools.CONSOLE.print("[Archive] Attempting to log in non-existing cabinet '{}'".format(cabinet))
             return False
-        self.__cabinets[cabinet][shelf] = value
+        self._cabinets[cabinet][shelf] = value
         return True
-    
-    def get (self, cabinet, shelf):
-        if cabinet not in self.__cabinets:
-            Tools.CONSOLE.print("[Archive] Attempting to retrieve from non-existing cabinet '{}'".format(cabinet))
+
+    def get(self, cabinet, shelf):
+        """ Gets the value of a certain shelf within a cabinet """
+        if cabinet not in self._cabinets:
+            self.log(f"Attempting to retrieve from non-existing cabinet '{cabinet}'")
             return None
-        if shelf not in self.__cabinets[cabinet]:
-            Tools.CONSOLE.print("[Archive] Attempting to retrieve from non-existing shelf '{}' in cabinet '{}'".format(shelf, cabinet))
+        if shelf not in self._cabinets[cabinet]:
+            self.log(f"Attempting to retrieve from non-existing shelf '{shelf}' in cabinet '{cabinet}'")
             return None
-        return self.__cabinets[cabinet][shelf]
-    
+        return self._cabinets[cabinet][shelf]
+
     # Updates in a clever way
-    def update (self, cabinet, shelf, d_value):
-        if cabinet not in self.__cabinets:
-            Tools.CONSOLE.print("[Archive] Attempting to update non-existing cabinet '{}'".format(cabinet))
+    def update(self, cabinet, shelf, d_value):
+        """
+            Updates a certain shelf in a certain cabinet in a type-dependent
+            way. The types are:
+              - Strings (gets concatenated)
+              - Integers (gets added)
+              - Float (gets added)
+              - Lists (get appended)
+              - Dictionary (sets the key to the value)
+        """
+
+        if cabinet not in self._cabinets:
+            self.log(f"Attempting to update non-existing cabinet '{cabinet}'")
             return False
-        if shelf not in self.__cabinets[cabinet]:
-            Tools.CONSOLE.print("[Archive] Attempting to update non-existing shelf '{}' in cabinet '{}'".format(shelf, cabinet))
+        if shelf not in self._cabinets[cabinet]:
+            self.log(f"Attempting to update non-existing shelf '{shelf}' in cabinet '{cabinet}'")
             return False
         # Check that shelf type
-        shelf_type = type(self.__cabinets[cabinet][shelf])
+        shelf_type = type(self._cabinets[cabinet][shelf])
         if shelf_type == str:
             if type(d_value) != str:
                 d_value = str(d_value)
-            self.__cabinets[cabinet][shelf] += d_value
+            self._cabinets[cabinet][shelf] += d_value
         elif shelf_type == int:
             if type(d_value) != int:
-                Tools.CONSOLE.print("[Archive] Attempting to update shelf '{}' (integer) in cabinet '{}' with '{}' ({})".format(shelf, cabinet, d_value, type(d_value)))
+                self.log(f"Attempting to update shelf '{shelf}' (integer) in cabinet '{cabinet}' with '{d_value}' ({type(d_value)})")
                 return False
-            self.__cabinets[cabinet][shelf] += d_value
+            self._cabinets[cabinet][shelf] += d_value
         elif shelf_type == float:
             if type(d_value) != int and type(d_value) != float:
-                Tools.CONSOLE.print("[Archive] Attempting to update shelf '{}' (float) in cabinet '{}' with '{}' ({})".format(shelf, cabinet, d_value, type(d_value)))
+                self.log(f"Attempting to update shelf '{shelf}' (float) in cabinet '{cabinet}' with '{d_value}' ({type(d_value)})")
                 return False
-            self.__cabinets[cabinet][shelf] += d_value
+            self._cabinets[cabinet][shelf] += d_value
         elif shelf_type == list:
             if type(d_value) == list:
-                self.__cabinets[cabinet][shelf] += d_value
+                self._cabinets[cabinet][shelf] += d_value
             else:
-                self.__cabinets[cabinet][shelf].append(d_value)
+                self._cabinets[cabinet][shelf].append(d_value)
         elif shelf_type == dict:
             if type(d_value) != tuple or len(d_value) != 2:
-                Tools.CONSOLE.print("[Archive] Attempting to update shelf '{}' (dictionary) in cabinet '{}', but not given key / value tuple".format(shelf, cabinet))
+                self.log(f"Attempting to update shelf '{shelf}' (dictionary) in cabinet '{cabinet}', but without given key / value tuple")
                 return False
-            self.__cabinets[cabinet][shelf][d_value[0]] = d_value[1]
+            self._cabinets[cabinet][shelf][d_value[0]] = d_value[1]
         else:
-            Tools.CONSOLE.print("[Archive] Attempting to update shelf '{}' in cabinet '{}', but that value isn't updatable".format(shelf, cabinet))
+            self.log(f"Attempting to update shelf '{shelf}' in cabinet '{cabinet}', but that value is static")
             return False
         return True
 
-    def empty (self, cabinet, shelf):
-        if cabinet not in self.__cabinets:
-            Tools.CONSOLE.print("[Archive] Attempting to clean non-existing cabinet '{}'".format(cabinet))
+    def empty(self, cabinet, shelf):
+        """ Cleans out a shelf in the given cabinet """
+        if cabinet not in self._cabinets:
+            self.log(f"Attempting to clean non-existing cabinet '{cabinet}'")
             return False
-        if shelf not in self.__cabinets[cabinet]:
-            Tools.CONSOLE.print("[Archive] Attempting to clean non-existing shelf '{}' in cabinet '{}'".format(shelf, cabinet))
+        if shelf not in self._cabinets[cabinet]:
+            self.log(f"Attempting to clean non-existing shelf '{shelf}' in cabinet '{cabinet}'")
             return False
-        del self.__cabinets[cabinet][shelf]
+        del self._cabinets[cabinet][shelf]
         return True
+
 
 # *** OPTIONAL ***
 # If the factory researched enough, they can unlock robots: cheaper, faster and
@@ -716,25 +845,26 @@ class Oven (Module):
 # OTHER MODULES
 # Test module
 class SimpleProcessingUnit (Module):
-    type = "simple_processing_unit"
-
     def __init__(self, name):
-        super().__init__(name, "simple_processing_unit", 0, [ Position(
+        super().__init__(name, "simple_processing_unit", 0, [Position(
             name="Slave",
-            workload = 1,
-            salary = 1,
-            schedule = [ 6, 18 ],
-            education_level = 1
-        ) for i in range(10)], "", [], Date(0, 0, 0, 1970), Date(0,0,0,0))
+            workload=1,
+            salary=1,
+            schedule=[6, 18],
+            education_level=1
+        ) for i in range(10)], "", Date(0, 0, 0, 0))
 
         self.storage = Storage(max=2500)
-        self.storage.add_rule("wheat", Storage.Rule('Wheat', target_stored = "[max]", flow = Storage.Rule.In, target_modules = [ "depot" ], anti_target_modules = []))
-        self.storage.add_rule("flour", Storage.Rule('Flour', target_stored = "0", flow = Storage.Rule.Out, target_modules = [ "depot" ], anti_target_modules = []))
+        self.storage.add_rule("wheat", Storage.Rule('Wheat', target_stored="[max]", flow=Storage.Rule.In, target_modules=["depot"], anti_target_modules=[]))
+        self.storage.add_rule("flour", Storage.Rule('Flour', target_stored="0", flow=Storage.Rule.Out, target_modules=["depot"], anti_target_modules=[]))
 
-    def do_work (self, workers):
+        self.type = "simple_processing_unit"
+
+    def do_work(self, workers):
+        """ Does the work """
         # Convert resources
         for worker in workers:
             if worker.work() > 0:
                 amount = self.storage.retrieve('Wheat', 10)
                 overflow = self.storage.store('Flour', amount)
-                print("Processed {} wheat".format(amount - overflow))
+                self.log("Processed {} wheat".format(amount - overflow))
