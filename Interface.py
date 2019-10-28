@@ -100,7 +100,7 @@ class Interface ():
         header = self.conn.recv(8)
         if not header:
             # Other side probably closed
-            return None, header, None, None
+            return [((-1, -1), None)]
         # Parse the message
         subcode, opcode, length, next_messages = self.struct.unpack(header)
         # Receive the other length of data
@@ -109,12 +109,12 @@ class Interface ():
             data = self.conn.recv(length - len(data))
             # Break at any time if empty, because then we disconnected
             if not data:
-                return None, "timeout", None, None
+                return [((-1, -1), None)]
         # Covert it to a message
         succes, msg = Message.create((subcode, opcode), data)
         if not succes:
             self.log(f"Received invalid message that couldn't be parsed:\n{msg}")
-            return None, msg, None, None
+            return [((-1, -1), None)]
         # Before returning, pass any other messages (if any)
         messages = [((subcode, opcode), msg)]
         if next_messages > 0:
@@ -225,15 +225,16 @@ class ConnectionServer (threading.Thread):
                         # Move from pending to interface
                         self.pending.remove(interface)
                         self.interfaces.append(interface)
+                        self.log(f"User {interface.addrstr} succesfully authenticated")
                     else:
-                        code, message = interface.receive()
-                        if code == -1:
+                        messages = interface.receive()
+                        if messages[0][0] == (-1, -1):
                             # User closed the connection
                             self.interfaces.remove(interface)
-                            self.log(f"User {interface.addstr} closed the connection")
+                            self.log(f"User {interface.addrstr} closed the connection")
                             continue
                         # Otherwise, run the opcode trough the parser and let it deal with it
-                        self.handle_message(interface, message)
+                        self.handle_message(interface, messages)
                 for interface in write_ready:
                     # Flush the first message of the interface and send it
                     interface.flush_first()
@@ -294,15 +295,15 @@ class ConnectionServer (threading.Thread):
 
         # Store the message in the internal terminal object and use that to
         #   create a new hash
-        self.announcements.store(msg.pack())
-        announcement = Message(CFNP.TERMINAL.ANNOUNCEMENT)
-        announcement.checksum = self.announcements.checksum
+        #self.announcements.store(msg.pack())
+        #announcement = Message(CFNP.TERMINAL.ANNOUNCEMENT)
+        #announcement.checksum = self.announcements.checksum
 
         # Send it on it's way
-        self.broadcast(announcement, next_up=[msg])
+        #self.broadcast(announcement, next_up=[msg])
 
         # Also print locally for prettiness
-        print(f"[{self.now()}][{UUID_MAP[origin]}] {message}", end="")
+        #print(f"[{self.now()}][{UUID_MAP[origin]}] {message}", end="")
 
     # TOOLS
     def log(self, text, end="\n"):
@@ -317,14 +318,11 @@ class ConnectionServer (threading.Thread):
         """
 
         # Decide on the proper action
-        if message.subcode == CFNP.TERMINAL.code:
-            if message.opcode == CFNP.TERMINAL.COMMAND_REQUEST:
-                pass
-            elif message.opcode == CFNP.TERMINAL.SYNC_REQUEST:
-                pass
+        pass
 
     def now(self):
         return time.strftime("%H:%M:%S")
+
 
 def test_server():
     # Run the Connection Server on a separate thread
