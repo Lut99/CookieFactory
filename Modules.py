@@ -122,6 +122,13 @@ class Module ():
         self.cost = cost
         self.construction_time = construction_time
         self.positions = positions
+        # Do a quick check for duplicate instances
+        ps = []
+        for p in self.positions:
+            if p in ps:
+                raise ValueError("Can only contain positions that are separate instances")
+            ps.append(p)
+
         self.work_done = 0
         self.founded = Globals.TIME.now()
         self.factory_name = factory_name
@@ -264,17 +271,17 @@ class HumanResources (Module):
     """
 
     def __init__(self, factory_name, modules):
-        worker_position = Position(
-            name="Travel Agent",
+        super().__init__("Human Resources (HR)", 0, [Position(
+            name="Recruiter",
             workload=1,
             salary=50,
             schedule=[9, 17],
             education_level=1
-        )
-        super().__init__("Human Resources (HR)", 0, [worker_position for i in range(5)], factory_name, Date(0, 0, 0, 0), modules)
-        self.workers = []
+        ) for i in range(5)], factory_name, Date(0, 0, 0, 0), modules)
 
         self.type = "HumanResources"
+
+        self.workers = []
 
         # Initialise the archive
         self.modules.archive.add_cabinet("Workers")
@@ -291,7 +298,8 @@ class HumanResources (Module):
 
         c = 0
         for p in positions:
-            c += (1 if p.name == position else 0)
+            if p.worker is None and p.name == position:
+                c += 1
         return c
 
     def manage_workers(self, available_workers):
@@ -300,69 +308,50 @@ class HumanResources (Module):
             Reasons for fireing could be because a worker quits (no salary
             paid), a worker is too old (pension) or a worker hasn't worked
             enough.
-            Additionally, for each worker in this module, we can hire a new
-            worker for another module.
+            Additionally, for each worker in HR, we can hire a new worker for
+            another module each hiring wave.
         """
 
-        # First, check if any should be fired for some reason
-        modules_count = {}
-        for w in self.workers:
-            # Pay him salary (is departure bonus if he's fired)
-            if self.modules.office.pay(w.salary) == 0:
-                # Oh no! Didn't have enough money to pay worker (kill his energy)
-                w.no_salary += 1
-            else:
-                w.no_salary = 0
-
-            if w.age > 67:
-                # Fire due to pension
-                self.fire(w, "pension age")
-            elif w.no_salary == 4:
-                # He quits do to not enough salary
-                self.fire(w, "not paid enough")
-            elif w.no_salary == 0 and w.perfect / (self.time - w.started).todays() < 0.5:
-                # Fire due to too low performance
-                self.fire(w, "too low performance")
-            else:
-                # Count the workers per module and position
-                if w.module in modules_count:
-                    if w.position.name in modules_count[w.module]:
-                        modules_count[w.module][w.position.name] += 1
-                    else:
-                        modules_count[w.module][w.position.name] = 1
-                else:
-                    modules_count[w.module] = {}
-                    modules_count[w.module][w.position.name] = 1
-        # Hire additional workers if required (once per worker)
+        # Loop trough each module and decide what's best
         for m in self.modules:
-            if m.name not in modules_count:
-                # It has no workers, init the module holder
-                modules_count[m.name] = {}
+            # Assemble the positions
+            can_hire = True
             for p in m.positions:
-                if p.name not in modules_count[m.name]:
-                    # The position isn't filled, init it
-                    modules_count[m.name][p.name] = 0
-                if modules_count[m.name][p.name] < self.count_positions(m.positions, p.name):
-                    # Hire a possible additional worker (1 per module)
-                    w = available_workers[random.randint(0,len(available_workers)-1)]
-                    if self.hire(w, m, p) == True:
-                        modules_count[m.name][p.name] += 1
-                        if m != self: self.work_done -= 1
+                if p.worker:
+                    w = p.worker
+                    # Try to pay him
+                    if self.modules.office.pay(w.salary):
+                        w.no_salary = 0
+                    else:
+                        # We couldn't pay the poor guy
+                        w.no_salary += 1
+                    # Check to see if we should FIRE him
+                    if w.age > 67:
+                        # Fire bc he's too old
+                        self.fire(w, "pension age")
+                    elif w.no_salary == 4:
+                        # Didn't pay him enough
+                        self.fire(w, "not paid enough")
+                    elif w.no_salary == 0 and w.perfect / (self.time - w.started).todays() < 0.5:
+                        # Didn't work enough
+                        self.fire(w, "low performance")
+                elif can_hire and len(available_workers) > 0 and (m == self or self.work_done > 0):
+                    # We found a spot! Hire someone if:
+                    #   - We haven't hired someone for this module already (to
+                    #     prevent one module swallowing all workers)
+                    #   - There are workers available
+                    #   - We still have work that can be done (and it's not HR)
+                    w = random.choice(available_workers)
+                    if self.hire(w, m, p):
+                        if m != self:
+                            # Hiring for HR is free
+                            self.work_done -= 1
                         available_workers.remove(w)
-                        if len(available_workers) == 0:
-                            # Stop because there are no more workers left
-                            break
-                        self.log("Hired " + w.name + " to work in " + m.name + " as " + p.name)
-                if m != self and self.work_done - 1 <= 0:
-                    # Stop because all the work that can be done is done (HumanResources is free)
-                    break
-            if len(available_workers) == 0:
-                break
-
-        # Fire any too much workers (e.g., more workers for a position in a module than there are positions)
+                        can_hire = False
+        # Before we quit, remove any workers that have invalid positions
         for w in self.workers:
-            if modules_count[w.module][w.position.name] > self.count_positions(self.modules[w.module].positions, w.position.name):
-                # We gotta let him go :(
+            if w.position not in w.module.positions:
+                # The worker's position has been removed
                 self.fire(w, "too many workers")
 
     def manage_shifts(self):
@@ -391,16 +380,22 @@ class HumanResources (Module):
                 w.level_up()
 
     def hire(self, worker, module, position):
-        """ Hires a worker for a given module and a given position """
+        """
+            Hires a worker for a given module and a given position, but only
+            if the worker meets the specified requirements
+        """
+
         if worker.stats.education_level >= position.education_level:
-            # Hire it
-            worker.module = module.name
+            # Hire him / her
+            worker.module = module
             worker.position = position
+            position.worker = worker
             worker.started = self.time.now()
             worker.perfect = 0
             worker.salary = position.salary
             self.workers.append(worker)
             self.modules.archive.update("Workers", "Hired", 1)
+            self.log(f"Hired {worker.name} (age {worker.age}) to work in {module.name} as {position.name}")
             return True
         return False
 
@@ -408,15 +403,17 @@ class HumanResources (Module):
         """ Fires a worker for a given reason """
         # Remove the worker
         self.workers.remove(worker)
+        worker.position.worker = None
         # Now add his name and reason for fireing
         self.modules.archive.update("Workers", "History", {
             'name': worker.name,
-            'module': worker.module,
+            'module': worker.module.name,
             'position': worker.position.name,
             'days_employed': (self.time - worker.started).todays(),
             'reason': reason
         })
         self.modules.archive.update("Workers", "Fired", 1)
+        self.log(f"Fired {worker.name} from {worker.module.name} because {reason}")
 
     def get_worker(self, name):
         """ Returns a worker with the given name """
@@ -499,20 +496,20 @@ class Logistics (Module):
                     if (rule.flow == Storage.Rule.InOut or rule.flow == Storage.Rule.In) and m.storage[rule.item] < target:
                         # Add it
                         requests.append({
-                            'module':m,
-                            'targets':rule.target_modules,
-                            'antitargets':rule.anti_target_modules,
-                            'item':rule.item,
-                            'amount':target - m.storage[rule.item]
+                            'module': m,
+                            'targets': rule.target_modules,
+                            'antitargets': rule.anti_target_modules,
+                            'item': rule.item,
+                            'amount': target - m.storage[rule.item]
                         })
                     if (rule.flow == Storage.Rule.InOut or rule.flow == Storage.Rule.Out) and m.storage[rule.item] > target:
                         # Add it
                         offers.append({
-                            'module':m,
-                            'targets':rule.target_modules,
-                            'antitargets':rule.anti_target_modules,
-                            'item':rule.item,
-                            'amount':m.storage[rule.item] - target
+                            'module': m,
+                            'targets': rule.target_modules,
+                            'antitargets': rule.anti_target_modules,
+                            'item': rule.item,
+                            'amount': m.storage[rule.item] - target
                         })
 
         # Now drive (not to the depot, do that afterwards)
@@ -636,15 +633,15 @@ class Depot (Module):
 
         self.type = "Depot"
 
-    # Override do_work
-    def do_work (self, workers):
+    def do_work(self, workers):
+        """ Overrides do_work to man the trucks instead """
         for w in workers:
             work = w.work()
             if work > 0:
                 self.trucks.append(int(self.truck_max * (2 / (1 / work))))
 
-    # The store / retrieve functions
-    def store (self, item, amount):
+    def store(self, item, amount):
+        """ Stores a new item, aka: sells it onto the market """
         # Sell these items
         for truck in self.trucks:
             shipped = truck
@@ -654,7 +651,9 @@ class Depot (Module):
             amount -= shipped
         # Return that which we could not transport
         return amount
-    def retrieve (self, item, amount):
+
+    def retrieve(self, item, amount):
+        """ Retrieves an item from the market, aka: buys it """
         bought = 0
         for truck in self.trucks:
             # Attempt to buy the resources
@@ -722,7 +721,7 @@ class Archive (Module):
         """ Handles all ticks. Can only do one tick for each clerk hired. """
         for tick_handler in self._ticks:
             tick_handler(self.modules, ticked)
-        
+
     def set(self, cabinet, shelf, value):
         """ Set the value of a certain shelf within a cabinet. """
         if cabinet not in self._cabinets:

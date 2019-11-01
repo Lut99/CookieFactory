@@ -231,12 +231,19 @@ class Date ():
 
 # Class representing the Position a worker can work in
 class Position ():
-    def __init__(self, name="", workload=0, salary=0, schedule = [0, 0], education_level=0):
+    """
+        Describes information about a station for a Worker, and contains him
+        while he works there.
+    """
+
+    def __init__(self, name="", workload=0, salary=0, schedule=[0, 0], education_level=0):
         self.name = name
         self.workload = workload
         self.salary = salary
         self.schedule = schedule
         self.education_level = education_level
+
+        self.worker = None
 
 
 class Worker ():

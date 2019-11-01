@@ -303,7 +303,7 @@ class ConnectionServer (threading.Thread):
         #self.broadcast(announcement, next_up=[msg])
 
         # Also print locally for prettiness
-        #print(f"[{self.now()}][{UUID_MAP[origin]}] {message}", end="")
+        print(f"[{self.now()}][{UUID_MAP[origin]}] {message}", end="")
 
     # TOOLS
     def log(self, text, end="\n"):
@@ -362,6 +362,38 @@ def test_server():
         sock.close()
 
 
+def test_ctypes():
+    import ctypes
+
+    # Define the Header class
+    class C_Message(ctypes.Structure):
+        _fields_ = [
+            ("subcode", ctypes.c_uint8),
+            ("opcode", ctypes.c_uint8),
+            ("raw", ctypes.c_void_p),
+            ("raw_length", ctypes.c_uint32)
+        ]
+
+    class C_ConnectionRequest(ctypes.Structure):
+        _fields_ = [
+            ("base", C_Message),
+            ("password", ctypes.c_char_p),
+            ("password_length", ctypes.c_int)
+        ]
+
+    # Import the library
+    message = ctypes.CDLL(os.getcwd() + "/resources/CFNP/Message.so")
+
+    # Use it to create a ConnectionRequest
+    message.create_connection_request.restype = ctypes.c_void_p
+    c = C_ConnectionRequest.from_address(message.create_connection_request())
+    print(c.base.raw)
+
+    # Free it
+    message.free_connection_request(ctypes.pointer(c))
+
+
 if __name__ == "__main__":
     # Run tests
-    test_server()
+    #test_server()
+    test_ctypes()
