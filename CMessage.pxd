@@ -24,6 +24,12 @@ cdef extern from "Message.h":
     # Define the general parse / pack
     unsigned char parse_message(Message *msg, unsigned char *raw, unsigned int bytes_length);
     unsigned char pack_message(Message *msg);
+    void free_message(Message *msg);
+
+    # FOURTH HANDSHAKE
+    cdef int FOURTH_HANDSHAKE
+    cdef int CONNECTION_REQUEST
+    cdef int CONNECTION_ACCEPT
 
     # Define ConnectionRequest
     ctypedef struct ConnectionRequest {

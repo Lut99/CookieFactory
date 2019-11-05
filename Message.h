@@ -9,7 +9,7 @@
 #ifndef MESSAGE_H_
 #define MESSAGE_H_
 
-typedef struct Header {
+typedef struct {
     /* Struct that carries information about the Unified Message Structure
      * header (CFNP-201) */
     unsigned char subcode;
@@ -18,7 +18,7 @@ typedef struct Header {
     unsigned short next_up;
 } Header;
 
-typedef struct Message {
+typedef struct {
     /* Base struct for all Messages. Carries information about the message
      * type, as well as fields to store the raw byte data in. */
     unsigned char subcode;
@@ -44,18 +44,22 @@ unsigned char parse_message(Message *msg, unsigned char *bytes, unsigned int byt
 /* Takes a message object (or children thereof) and packs those according to
  * given subcode and opcode. Calls the message-specific pack function. */
 unsigned char pack_message(Message *msg);
+/* Takes a message object (or children thereof) and frees those according to
+ * the given subcode and opcode. Calls the message-specific free function. */
+void free_message(Message *msg);
 
 /* Fourth Handshake (CFNP-21) */
 #define FOURTH_HANDSHAKE 0
 #define CONNECTION_REQUEST 0
 #define CONNECTION_ACCEPT 1
 
-typedef struct ConnectionRequest {
+typedef struct {
     /* Struct that carries information about the Connection Request (CFNP-211) */
     Message base;
     char *password;
     unsigned int password_length;
 } ConnectionRequest;
+
 /* Creates a new Connection Request. */
 ConnectionRequest *create_connection_request();
 /* Parses a given raw byte array, and parses that according to a Connection
@@ -67,10 +71,11 @@ unsigned char pack_connection_request(ConnectionRequest *msg);
 /* Cleans up a Connection Request and possible allocs within. */
 void free_connection_request(ConnectionRequest *msg);
 
-typedef struct ConnectionAccept {
+typedef struct {
     /* Struct that carries information about the Connection Accept (CFNP-212) */
     Message base;
 } ConnectionAccept;
+
 /* Creates a new Connection Accept. */
 ConnectionAccept *create_connection_accept();
 /* Parses a given raw byte array, and parses that according to a Connection

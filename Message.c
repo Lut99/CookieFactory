@@ -47,7 +47,7 @@ void decapsulate(Header* result, unsigned char* bytes) {
 }
 
 /*** Subprotocol Parsing ***/
-/* General Parsing / Packing Selection */
+/* General Parsing / Packing / Freeing Selection */
 unsigned char parse_message(Message *msg, unsigned char *bytes, unsigned int bytes_length) {
     /* Chooses how to parse a message and then does it like that. If it fails,
      * it returns 0 and a 1 otherwise. */
@@ -77,6 +77,21 @@ unsigned char pack_message(Message *msg) {
     }
     // It's an unknown message, couldn't parse
     return 0;
+}
+void free_message(Message *msg) {
+    /* Determines what type the message is and frees it accordingly. If it's
+     * unknown, just a plain 'free' is called. */
+    if (msg->subcode == FOURTH_HANDSHAKE) {
+        if (msg->opcode == CONNECTION_REQUEST) {
+            ConnectionRequest *c = (ConnectionRequest *) msg;
+            free_connection_request(c);
+        } else if (msg->opcode == CONNECTION_ACCEPT) {
+            ConnectionAccept *c = (ConnectionAccept *) msg;
+            free_connection_accept(c);
+        }
+    }
+    // It's an unknown message, no free defined
+    free(msg);
 }
 
 /* Fourth Handshake (CFNP-21) / Connection Request (CFNP-211) */
