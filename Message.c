@@ -13,7 +13,7 @@
 #include "Encoding.h"
 
 /* Unified Message Structure encapsulation (CFNP-201) */
-void ums_encapsulate(Header *h, unsigned char* bytes, unsigned char* result) {
+void encapsulate(Header *h, unsigned char* bytes, unsigned char* result) {
     /* Encapsulates given bytes with the Unified Message Structure header. The
      * result is put into the result array, which must be at least 8 + the
      * length of bytes. */
@@ -34,7 +34,7 @@ void ums_encapsulate(Header *h, unsigned char* bytes, unsigned char* result) {
         }
     }
 }
-void ums_decapsulate(Header* result, unsigned char* bytes) {
+void decapsulate(Header* result, unsigned char* bytes) {
     /* Parses the Unified Message Structure header. Note: since this is always
      * supposed to have a length of 8, this is assumed. */
     // We can lineairly take the first two bytes as subcode and opcode

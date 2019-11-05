@@ -9,7 +9,7 @@
 #ifndef MESSAGE_H_
 #define MESSAGE_H_
 
-typedef struct {
+typedef struct Header {
     /* Struct that carries information about the Unified Message Structure
      * header (CFNP-201) */
     unsigned char subcode;
@@ -18,7 +18,7 @@ typedef struct {
     unsigned short next_up;
 } Header;
 
-typedef struct {
+typedef struct Message {
     /* Base struct for all Messages. Carries information about the message
      * type, as well as fields to store the raw byte data in. */
     unsigned char subcode;
@@ -29,10 +29,10 @@ typedef struct {
 
 /* Encapsulates a byte array with 8 more bytes, which carry information needed
  * for the Unified Message Structure (CFNP-201) */
-void ums_encapsulate(Header *h, unsigned char *bytes, unsigned char *result);
+void encapsulate(Header *h, unsigned char *bytes, unsigned char *result);
 /* Parses the encapsulation of a byte array that is carrying header information
  * according to the Unified Message Structure (CFNP-201) */
-void ums_decapsulate(Header *result, unsigned char *bytes);
+void decapsulate(Header *result, unsigned char *bytes);
 
 /*** Subprotocol Parsing ***/
 
@@ -50,7 +50,7 @@ unsigned char pack_message(Message *msg);
 #define CONNECTION_REQUEST 0
 #define CONNECTION_ACCEPT 1
 
-typedef struct {
+typedef struct ConnectionRequest {
     /* Struct that carries information about the Connection Request (CFNP-211) */
     Message base;
     char *password;
@@ -67,7 +67,7 @@ unsigned char pack_connection_request(ConnectionRequest *msg);
 /* Cleans up a Connection Request and possible allocs within. */
 void free_connection_request(ConnectionRequest *msg);
 
-typedef struct {
+typedef struct ConnectionAccept {
     /* Struct that carries information about the Connection Accept (CFNP-212) */
     Message base;
 } ConnectionAccept;

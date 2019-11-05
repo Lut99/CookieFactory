@@ -105,13 +105,13 @@ void test_message_ums() {
     printf("Message (source):\n  ");
     print_string(msg + 8);
     // Encapsulate that header
-    ums_encapsulate(h, msg + 8, msg);
+    encapsulate(h, msg + 8, msg);
     // Print the byte stream
     printf("Bytes (encapsulated):\n  ");
     print_bytes(msg, 18);
     // Parse back the header
     Header *h_back = malloc(sizeof(Header));
-    ums_decapsulate(h_back, msg);
+    decapsulate(h_back, msg);
     // Print the parsed results
     printf("Header (parsed):\n");
     printf("  ->subcode: %u\n", h_back->subcode);
