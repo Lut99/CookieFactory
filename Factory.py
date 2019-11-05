@@ -6,8 +6,7 @@
 # For a detailed explaination and changelog, see cookie_factory_doc.txt
 
 # TODO:
-#  - Fix weird key error bug in Modules > Human Resources > Manage workers
-#  - Overhaul Human Resources?
+#  - Migrate Message.py to the C code (see the other branch for the code)
 # See 'README.md' for the Roadmap for bigger stages in the upcoming development
 
 import Modules
