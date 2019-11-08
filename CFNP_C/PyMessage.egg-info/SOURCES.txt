@@ -1,0 +1,7 @@
+setup.py
+PyMessage.egg-info/PKG-INFO
+PyMessage.egg-info/SOURCES.txt
+PyMessage.egg-info/dependency_links.txt
+PyMessage.egg-info/top_level.txt
+src/C/Message.c
+src/Cython/PyMessage.c
