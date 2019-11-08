@@ -3,11 +3,8 @@
 #
 # Description: This file wraps Message.c so that's it available in python.
 
-from ctypes import CDLL
-from ctypes import c_void_p;
-
-# Import the library
-CMessage = CDLL("resources/CFNPv2/Message.so")
+import resources.CFNPv2.Message_H as HMessage
+from resources.CFNPv2.Message_H import CMessage
 
 # Define the structs
 

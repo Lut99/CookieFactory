@@ -48,6 +48,18 @@ void decapsulate(Header* result, unsigned char* bytes) {
 
 /*** Subprotocol Parsing ***/
 /* General Message operations */
+Message *create_message(unsigned char subcode, unsigned char opcode) {
+    /* Creates a new Message struct, according to the given subcode. */
+    Message *msg = NULL;
+    if (subcode == FOURTH_HANDSHAKE) {
+        if (opcode == CONNECTION_REQUEST) {
+            msg = (Message*) create_connection_request();
+        } else if (opcode == CONNECTION_ACCEPT) {
+            msg = (Message*) create_connection_accept();
+        }
+    }
+    return msg;
+}
 unsigned char parse_message(Message *msg, unsigned char *bytes, unsigned int bytes_length) {
     /* Chooses how to parse a message and then does it like that. If it fails,
      * it returns 0 and a 1 otherwise. */

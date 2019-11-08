@@ -38,6 +38,8 @@ void decapsulate(Header *result, unsigned char *bytes);
 
 /* General Parsing / Packing Selection */
 
+/* Creates a message struct according to the given sub- and opcode. */
+Message *create_message(unsigned char subcode, unsigned char opcode);
 /* Takes a message object (or children thereof) and parses those according to
  * given subcode and opcode. Calls the message-specific parse function. */
 unsigned char parse_message(Message *msg, unsigned char *bytes, unsigned int bytes_length);
