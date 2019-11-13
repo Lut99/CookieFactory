@@ -6,14 +6,14 @@ from ctypes import c_ubyte
 from ctypes import c_char_p
 
 # Load the library
-CMessage = CDLL("Message.so")
+CMessage = CDLL("resources/CFNPv2/Message.so")
 
 FOURTH_HANDSHAKE = CMessage.FOURTH_HANDSHAKE
 CONNECTION_REQUEST = CMessage.CONNECTION_REQUEST
 CONNECTION_ACCEPT = CMessage.CONNECTION_ACCEPT
 
 
-# Define relevant structs
+""" Define relevant structs """
 class Message(Structure):
     _fields_ = [("subcode", c_ubyte),
                 ("opcode", c_ubyte),
@@ -33,14 +33,16 @@ class ConnectionAccept(Structure):
 ConnectionAccept_p = POINTER(ConnectionAccept)
 
 
-def create_message(code):
-    # Covert the codes to ctypes
-    subcode = c_ubyte(code[0])
-    opcode = c_ubyte(code[1])
+""" Define relevant functions """
+# General message operations
+create_message = CMessage.create_message
+create_message.argtypes = [c_ubyte, c_ubyte]
+create_message.restype = Message_p
 
-    # Use the C function to create a new struct
-    c_create_message = CMessage.create_message
-    c_create_message 
-    c_create_message.restype = Message_p
+parse_message = CMessage.parse_message
+parse_message.argtypes = [Message_p, c_char_p, c_int]
+parse_message.restype = None
 
-    return c_create_message(subcode, opcode)
+free_message = CMessage.free_message
+free_message.argtypes = [Message_p]
+free_message.restype = None
