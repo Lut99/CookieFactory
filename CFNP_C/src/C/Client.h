@@ -5,8 +5,8 @@
  */
 
 /* Makes sure the header is only run once */
-#ifndef MESSAGE_H_
-#define MESSAGE_H_
+#ifndef CLIENT_H_
+#define CLIENT_H_
 
 
 

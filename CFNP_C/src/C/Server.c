@@ -8,33 +8,92 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/select.h>
+
 #include "Server.h"
-#include "Tools/Message.h"
 
 #define MAX_CONNECTIONS 5
+#define BUFFER_SIZE 65541 // 65535 + 6 for the header
 
 /* SERVER THREAD */
 
 void *server_thread(void *args) {
-    CFNPServer *server = (CFNPServer *) args;
+    /* Declare local variables */
     int i, n_connections;
-    int *sockets[MAX_CONNECTIONS + 1];
+    int sockets[MAX_CONNECTIONS + 1];
+    char buffer[BUFFER_SIZE];
     CFNPConnection connections[MAX_CONNECTIONS];
+    fd_set *readable_sockets;
+
+    // Cast the arguments
+    CFNPServer *server = (CFNPServer *) args;
 
     // Init some variables
     sockets[0] = server->sock;
     n_connections = 0;
+    FD_ZERO(readable_sockets);
+
+    // Add the server socket to the list of readable sockets
+    FD_SET(server->sock, readable_sockets);
 
     // Run while we can
     while (server->t_status == THREAD_RUNNING) {
-        // Wait until any of the sockets becomes available
-        // TODO: Use select() to handle new connections and read from old ones
+        // Prepare the list of sockets that have to be readable
+        FD_ZERO(readable_sockets);
+        FD_SET(server->sock, readable_sockets);
+        for (i = 0; i < n_connections; i++) {
+            FD_SET(connections[i].sock, readable_sockets);
+        }
+        // Wait until any of them is readable
+        int readable = select(MAX_CONNECTIONS, readable_sockets, NULL, NULL, NULL);
+        if (readable < 0) {
+            server->t_error = THREAD_SELECT_ERR;
+            break;
+        }
+
+        // First, check if the server has a ready connection
+        if (FD_ISSET(server->sock, readable)) {
+            // New connection incoming
+            CFNPConnection conn;
+            conn.sock = accept(server->sock, (struct sockaddr *) &conn.addr, sizeof(conn.addr));
+            if (conn.sock < 0) {
+                // Something bad has happened
+                server->t_error = SOCK_ACCEPT_ERR;
+                break;
+            }
+            // Make sure we can accomodate it
+            if (n_connections + 1 >= MAX_CONNECTIONS) {
+                // We can't, drop it
+                close(conn.sock);
+            } else {
+                // We can, store it
+                conn.status = CONN_PENDING;
+                connections[n_connections] = conn;
+                n_connections++;
+            }
+        }
+        // Then, check for the individual connections themselves
+        for (i = 0; i < readable; i++) {
+            CFNPConnection conn = connections[i];
+            if (FD_ISSET(conn.sock, readable)) {
+                // This connection send us data, so read it
+                int n_read = read(conn.sock, buffer, BUFFER_SIZE);
+                if (n_read < 0) {
+                    // Could not read from this connection, so stop it
+                    // TODO
+                }
+            }
+        }
     }
 
     // Cleanup any socket(s)
     for (i = 0; i < n_connections; i++) {
         close(connections[i].sock);
     }
+
+    return NULL;
 }
 
 /* SERVER OPERATIONS */
@@ -42,6 +101,7 @@ void *server_thread(void *args) {
 int server_init(CFNPServer *server, unsigned short port) {
     int i;
 
+    // Initialize the server struct
     server = malloc(sizeof(CFNPServer));
 
     // Try to create the socket
@@ -58,7 +118,7 @@ int server_init(CFNPServer *server, unsigned short port) {
     server->addr.sin_addr.s_addr = INADDR_ANY;
 
     // Attempt to bind this address to the socket
-    if (bind(server->sock, (struct sockaddr *) server->addr, sizeof(server->addr)) < 0) {
+    if (bind(server->sock, (struct sockaddr *) &server->addr, sizeof(server->addr)) < 0) {
         // Dealloc, since we didn't make it
         free(server);
         return SOCK_BIND_ERR;
@@ -69,18 +129,18 @@ int server_init(CFNPServer *server, unsigned short port) {
 
     // Now that we successfully created the socket, create the thread
     server->t_status = THREAD_RUNNING;
+    server->t_error = THREAD_SUCCESS;
     pthread_create(&server->t_id, NULL, server_thread, (void *) server);
 
     // Done
     return SOCK_SUCCES;
 }
-
 void server_destroy(CFNPServer *server) {
     // Set the server's flag to THREAD_STOPPED
     server->t_status = THREAD_STOPPED;
 
     // Wait until the server's thread has joined
-    pthread_join(&server->t_id, NULL);
+    pthread_join(server->t_id, NULL);
 
     // Dealloc server
     close(server->sock);
