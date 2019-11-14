@@ -11,10 +11,81 @@
 #include "Server.h"
 #include "Tools/Message.h"
 
-// Include stuff for sockest
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
+#define MAX_CONNECTIONS 5
+
+/* SERVER THREAD */
+
+void *server_thread(void *args) {
+    CFNPServer *server = (CFNPServer *) args;
+    int i, n_connections;
+    int *sockets[MAX_CONNECTIONS + 1];
+    CFNPConnection connections[MAX_CONNECTIONS];
+
+    // Init some variables
+    sockets[0] = server->sock;
+    n_connections = 0;
+
+    // Run while we can
+    while (server->t_status == THREAD_RUNNING) {
+        // Wait until any of the sockets becomes available
+        // TODO: Use select() to handle new connections and read from old ones
+    }
+
+    // Cleanup any socket(s)
+    for (i = 0; i < n_connections; i++) {
+        close(connections[i].sock);
+    }
+}
+
+/* SERVER OPERATIONS */
+
+int server_init(CFNPServer *server, unsigned short port) {
+    int i;
+
+    server = malloc(sizeof(CFNPServer));
+
+    // Try to create the socket
+    server->sock = socket(AF_INET, SOCK_STREAM, 0);
+    if (server->sock < 0) {
+        // Dealloc
+        free(server);
+        return SOCK_CREATE_ERR;
+    }
+
+    // Assign address fields for the server
+    server->addr.sin_family = AF_INET;
+    server->addr.sin_port = htons(port);
+    server->addr.sin_addr.s_addr = INADDR_ANY;
+
+    // Attempt to bind this address to the socket
+    if (bind(server->sock, (struct sockaddr *) server->addr, sizeof(server->addr)) < 0) {
+        // Dealloc, since we didn't make it
+        free(server);
+        return SOCK_BIND_ERR;
+    }
+
+    // Set the server to listen
+    listen(server->sock, MAX_CONNECTIONS);
+
+    // Now that we successfully created the socket, create the thread
+    server->t_status = THREAD_RUNNING;
+    pthread_create(&server->t_id, NULL, server_thread, (void *) server);
+
+    // Done
+    return SOCK_SUCCES;
+}
+
+void server_destroy(CFNPServer *server) {
+    // Set the server's flag to THREAD_STOPPED
+    server->t_status = THREAD_STOPPED;
+
+    // Wait until the server's thread has joined
+    pthread_join(&server->t_id, NULL);
+
+    // Dealloc server
+    close(server->sock);
+    free(server);
+}
 
 int main() {
     // Init some variables
