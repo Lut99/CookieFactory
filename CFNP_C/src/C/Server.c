@@ -18,7 +18,6 @@
 #define BUFFER_SIZE 65541 // 65535 + 6 for the header
 
 /* SERVER THREAD */
-
 void *server_thread(void *args) {
     /* Declare local variables */
     int i, n_connections;
@@ -38,6 +37,10 @@ void *server_thread(void *args) {
     // Add the server socket to the list of readable sockets
     FD_SET(server->sock, readable_sockets);
 
+    if (server->verbose) {
+        printf("[CFNPServer] Initialized\n");
+    }
+
     // Run while we can
     while (server->t_status == THREAD_RUNNING) {
         // Prepare the list of sockets that have to be readable
@@ -53,13 +56,16 @@ void *server_thread(void *args) {
             break;
         }
 
-        // First, check if the server has a ready connection
+        // First, check if the server has a pending accept
         if (FD_ISSET(server->sock, readable)) {
             // New connection incoming
             CFNPConnection conn;
             conn.sock = accept(server->sock, (struct sockaddr *) &conn.addr, sizeof(conn.addr));
             if (conn.sock < 0) {
                 // Something bad has happened
+                if (server->verbose) {
+                    printf("[CFNPServer] Could not accept new connection: error\n");
+                }
                 server->t_error = SOCK_ACCEPT_ERR;
                 break;
             }
@@ -67,11 +73,17 @@ void *server_thread(void *args) {
             if (n_connections + 1 >= MAX_CONNECTIONS) {
                 // We can't, drop it
                 close(conn.sock);
+                if (server->verbose) {
+                    printf("[CFNPServer] Could not accept new connection: too many connections\n");
+                }
             } else {
                 // We can, store it
                 conn.status = CONN_PENDING;
                 connections[n_connections] = conn;
                 n_connections++;
+                if (server->verbose) {
+                    printf("[CFNPServer] Accepted new connection as connection %i\n", n_connections);
+                }
             }
         }
         // Then, check for the individual connections themselves
@@ -82,7 +94,7 @@ void *server_thread(void *args) {
                 int n_read = read(conn.sock, buffer, BUFFER_SIZE);
                 if (n_read < 0) {
                     // Could not read from this connection, so stop it
-                    // TODO
+                    
                 }
             }
         }
@@ -98,7 +110,7 @@ void *server_thread(void *args) {
 
 /* SERVER OPERATIONS */
 
-int server_init(CFNPServer *server, unsigned short port) {
+int server_init(CFNPServer *server, unsigned short port, int is_verbose) {
     int i;
 
     // Initialize the server struct
@@ -128,6 +140,7 @@ int server_init(CFNPServer *server, unsigned short port) {
     listen(server->sock, MAX_CONNECTIONS);
 
     // Now that we successfully created the socket, create the thread
+    server->verbose = is_verbose;
     server->t_status = THREAD_RUNNING;
     server->t_error = THREAD_SUCCESS;
     pthread_create(&server->t_id, NULL, server_thread, (void *) server);

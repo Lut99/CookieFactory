@@ -34,6 +34,7 @@ typedef struct {
     int sock;
     struct sockaddr_in addr;
     pthread_t t_id;
+    int verbose;
     int t_status;
     int t_error;
     Message *inbox;
@@ -48,7 +49,7 @@ typedef struct {
 /* SERVER OPERATIONS */
 
 /* Creates and starts a server thread and returns a server instance. */
-int server_init(CFNPServer *server, unsigned short port);
+int server_init(CFNPServer *server, unsigned short port, int is_verbose);
 /* Stops the server thread and destroys the server instance */
 void server_destroy(CFNPServer *server);
 
