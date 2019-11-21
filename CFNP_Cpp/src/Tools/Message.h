@@ -13,20 +13,31 @@ namespace Msg {
             char subcode;
             char opcode;
 
+            /* Initializes the Message object. The subcode and opcode are used
+             *   to identify any subprotocols and operators. */
             Message(char subcode, char opcode);
 
-            void parse(char *bytes);
-            void pack(char *result);
+            /* Abstract for parse. The given array should contain the byte
+             *   representation of the current operator. */
+            void parse(char *bytes, size_t bytes_size);
+            /* Abstract for pack. The given array will contain a new char array
+             *   containing the byte representation of this message. */
+            void pack(char *result, size_t *result_size);
     };
 
     class ConnectionRequest: public Message {
         public:
-            char *password;
+            /* The password stored in this ConnectionRequest. */
+            string password;
+            /* The size of the password. NOTE: Doesn't include '\0' */
+            int password_length;
 
             ConnectionRequest();
-
-            void parse(char *bytes);
-            void pack(char *result);
+            
+            /* Parses given bytes to a ConnectionRequest. The bytes are given in the pointer bytes, and bytes_size must be their length. */
+            void parse(char *bytes, size_t bytes_size);
+            /* Packs this ConnectionRequest to bytes. The given result pointer will be a newly allocated byte array, and result_size will be its size. */
+            void pack(char *result, size_t *result_size);
     };
 }
 
