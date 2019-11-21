@@ -16,11 +16,24 @@ Message::Message(char subcode, char opcode) {
     this->subcode = subcode;
     this->opcode = opcode;
 }
+void Message::parse(char *bytes) {
+
+}
+void Message::pack(char *result) {
+
+}
 
 /* ConnectionRequest logic */
 ConnectionRequest::ConnectionRequest()
     : Message(0, 0) {
-    cout << "Klaar denk?" << endl;
+    // Initialize the password to NULL
+    this->password = NULL;
+}
+void ConnectionRequest::parse(char *bytes) {
+
+}
+void ConnectionRequest::pack(char *result) {
+
 }
 
 

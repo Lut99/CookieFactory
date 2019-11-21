@@ -34,10 +34,10 @@ int main() {
     unsigned char t1 = rand();
     short t2 = rand();
     unsigned short t3 = rand();
-    int t4 = rand();
-    unsigned int t5 = rand();
-    long t6 = (((long) rand()) << 32) | rand();
-    unsigned long t7 = (((long) rand()) << 32) | rand();
+    int t4 = rand() * -1;
+    unsigned int t5 = rand() * -1;
+    long t6 = ((((long) rand()) << 32) | rand()) * -1;
+    unsigned long t7 = ((((long) rand()) << 32) | rand()) * -1;
 
     cout << "Test variables:" << endl;
     cout << "    (char) t0 = " << (int) t0 << endl;

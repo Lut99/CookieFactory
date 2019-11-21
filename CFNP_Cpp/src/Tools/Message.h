@@ -14,11 +14,19 @@ namespace Msg {
             char opcode;
 
             Message(char subcode, char opcode);
+
+            void parse(char *bytes);
+            void pack(char *result);
     };
 
     class ConnectionRequest: public Message {
         public:
+            char *password;
+
             ConnectionRequest();
+
+            void parse(char *bytes);
+            void pack(char *result);
     };
 }
 
