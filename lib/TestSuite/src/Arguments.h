@@ -26,15 +26,15 @@ namespace TestSuite {
 
     template <class ... Types> class Arguments {
         private:
-            Arg<> *args;
+            void* args;
 
             /* Basecase for recursively adding each element to the internal elements list. */
             template <class T> void add_element(T arg);
             /* Recurse case for recursively adding each element to the internal elements list. */
-            template <class T> void add_element(T arg, Rest ... rest);
+            template <class T, class ... Rest> void add_element(T arg, Rest ... rest);
         public:
             /* The Arguments class stores many different types of variables, stored in a list and accessible by a key. */
-            Arguments(Types ... args);
+            Arguments(int size, Types ... args);
     };
 }
 

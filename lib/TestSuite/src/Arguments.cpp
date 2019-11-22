@@ -5,6 +5,7 @@
 *    but very variable in what it can store.
 **/
 
+#include <iostream>
 #include <sstream>
 #include "Arguments.h"
 
@@ -31,4 +32,15 @@ template <typename T>
 T Arg<T>::get() {
     // Return the inner value
     return this->value;
+}
+
+template <class... Types> Arguments::Arguments(int size, Types... args) {
+
+}
+
+
+
+
+int main() {
+    cout << "Hello there!" << endl;
 }
