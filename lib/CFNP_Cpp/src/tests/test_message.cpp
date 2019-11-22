@@ -13,6 +13,7 @@
 
 using namespace std;
 using namespace Msg;
+using namespace Msg::FourthHandshake;
 
 
 string str_hex(char *bytes, int bytes_size) {
@@ -28,7 +29,7 @@ string str_hex(char *bytes, int bytes_size) {
 
 
 bool test_connection_request(string to_check) {
-    cout << "Testing ConnectionRequests..." << endl;
+    cout << "Testing ConnectionRequest..." << endl;
 
     // Create a ConnectionRequest object
     ConnectionRequest req = ConnectionRequest();
@@ -49,12 +50,28 @@ bool test_connection_request(string to_check) {
     // Check the strings
     if (req_back.password.compare(to_check) == 0) {
         cout << " > Succes" << endl;
+        return true;
     } else {
         cout << " > Failure: expected \"" << to_check << "\", got \"" << req_back.password << "\"" << endl;
+        return false;
+    }
+}
+bool test_connection_accept() {
+    cout << "Testing ConnectionAccept..." << endl;
+
+    // Create a connectionaccept object
+    ConnectionAccept acp = ConnectionAccept();
+    if (acp.subcode != 0 && acp.opcode != 1) {
+        cout << " > Failure: opcode and subcode are not (0, 1)" << endl;
+        return false;
+    } else {
+        cout << " > Succes" << endl;
+        return true;
     }
 }
 
 
 int main() {
     test_connection_request("KAHSdkajhsdkhasd");
+    test_connection_accept();
 }
