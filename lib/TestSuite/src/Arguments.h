@@ -26,15 +26,19 @@ namespace TestSuite {
 
     template <class ... Types> class Arguments {
         private:
-            void* args;
-
-            /* Basecase for recursively adding each element to the internal elements list. */
-            template <class T> void add_element(T arg);
-            /* Recurse case for recursively adding each element to the internal elements list. */
-            template <class T, class ... Rest> void add_element(T arg, Rest ... rest);
+            int size;
+            std::string *keys;
+            std::tuple<Types> values;
         public:
             /* The Arguments class stores many different types of variables, stored in a list and accessible by a key. */
-            Arguments(int size, Types ... args);
+            Arguments(Types... values);
+            ~Arguments();
+
+            /* Sets the keys to the given values, in order as given. The given pointer isn't copied, and will be freed once the Arguments class is freed. */
+            void set_keys(std::string *keys);
+
+            /* Returns value for given key. */
+            template<class T> T &operator[] (std::string key);
     };
 }
 

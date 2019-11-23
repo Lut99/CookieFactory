@@ -7,6 +7,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <tuple>
 #include "Arguments.h"
 
 using namespace std;
@@ -34,13 +35,31 @@ T Arg<T>::get() {
     return this->value;
 }
 
-template <class... Types> Arguments::Arguments(int size, Types... args) {
+template <typename ... Types> Arguments<Types...>::Arguments(Types... values) {
+    // Get the size
+    this->size = tuple_size<Types>::value;
 
+    // Init the keys array to NULL
+    this->keys = NULL;
+
+    // Put the values in the tuple
+    this->values = tuple<Types...>(values);
+}
+template <typename ... Types> Arguments<Types...>::~Arguments() {
+    // Dealloc the keys array if necessary
+    if (this->keys != NULL) {
+        delete[] this->keys;
+    }
 }
 
-
+template <typename ... Types> void Arguments<Types...>::set_keys(string *keys) {
+    // Simply copy the keys pointer
+    this->keys = keys;
+}
 
 
 int main() {
     cout << "Hello there!" << endl;
+
+    Arguments<int, int> test = Arguments<int, int>(2, 5, 5);
 }
