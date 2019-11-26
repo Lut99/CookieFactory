@@ -13,93 +13,124 @@
 using namespace std;
 using namespace TestSuite;
 
-template <typename T>
-Arg<T>::Arg(string key, T value) {
-    // Create a copy of the key
-    stringstream sstr;
-    for (int i = 0; i < key.length(); i++) {
-        sstr << key[i];
-    }
-    // Store both the copy and the given value
-    this->key = sstr.str();
-    this->value = value;
+Arguments::Arguments() {
+    /* Case for no arguments */
+
+    // Just initialize the required variables
+    this->size = 0;
+    this->max_size = 0;
+    this->args = NULL;
+}
+template <typename T> Arguments::Arguments(string key, T value) {
+    /* Case for one argument */
+
+    // First of all, initialize the required variables
+    this->size = 0;
+    this->max_size = 1;
+    this->args = new Arg[1];
+    
+    // Next, use the basecase from the recursive function to add all the argument
+    this->store_pairs(key, value);
+}
+template <typename T, class ... Types> Arguments::Arguments(string key, T value, Types... args) {
+    /* Case for more arguments */
+
+    // First of all, initialize the required variables
+    this->size = 0;
+    this->max_size = sizeof...(args) + 1;
+    this->args = new Arg[1];
+
+    // Next, use the recursive function to add all arguments
+    this->store_pairs(key, value, args...);
+}
+Arguments::~Arguments() {
+    // Cleanup the array
+    delete[] this->args;
 }
 
-template <typename T>
-bool Arg<T>::matches(string key) {
-    return this->key.compare(key) == 0;
-}
-template <typename T>
-T Arg<T>::get() {
-    // Return the inner value
-    return this->value;
-}
+template <typename T> void Arguments::store_pairs(string key, T value) {
+    /* Base case for recursive function */
 
-template <typename ... Types> Arguments<Types...>::Arguments(Types... values) {
-    // Get the size
-    this->size = tuple_size<Types...>::value;
-
-    // Init the keys array to NULL
-    this->keys = NULL;
-
-    // Put the values in the tuple
-    this->values = tuple<Types...>(values...);
-}
-template <typename ... Types> Arguments<Types...>::~Arguments() {
-    // Dealloc the keys array if necessary
-    if (this->keys != NULL) {
-        delete[] this->keys;
-    }
-}
-template <typename ... Types> void Arguments<Types...>::set_keys(string *keys) {
-    // Simply copy the keys pointer
-    this->keys = keys;
-}
-template <typename ... Types> void* Arguments<Types...>::get_elem(string key) {
-    // Find the key in the keys list
+    // Check if string already exists
     for (int i = 0; i < this->size; i++) {
-        if (this->keys[i].compare(key) == 0) {
-            // Found it, return a pointer to given value
-            return (void*) &get<(size_t) i>(this->values);
+        if (this->args[i].key.compare(key) == 0) {
+            throw "Duplicate key \"" + key + "\"";
         }
     }
-    // Not found, return NULL
-    return NULL;
+
+    // Add key and the value
+    this->args[this->size].key = key;
+    this->args[this->size].value = (void*) &value;
+    this->size++;
 }
-template <typename ... Types> const std::type_info& Arguments<Types...>::get_type(string key) {
-    // Find the key in the keys list
+template <typename T, class ... Types> void Arguments::store_pairs(string key, T value, Types... args) {
+    /* Recursive case for recursive function */
+
+    // Check if string already exists
     for (int i = 0; i < this->size; i++) {
-        if (this->keys[i].compare(key) == 0) {
-            // Found it, return the typeid
-            const size_t index = (size_t) i;
-            return typeid(typename tuple_element<index, tuple<Types...>>::type);
+        if (this->args[i].key.compare(key) == 0) {
+            throw "Duplicate key \"" + key + "\"";
         }
     }
-    // Not found, return NULL
-    return NULL;
+
+    // Add key and the value
+    this->args[this->size].key = key;
+    this->args[this->size].value = (void*) &value;
+    this->size++;
+
+    // Do the rest
+    this->store_pairs(args...);
 }
 
-template <typename T, class ... Types> T get_arg(Arguments<Types...> args, std::string key) {
-    // First, obtain the value given the key
-    void *val = args.get_elem(key);
-    if (val == NULL) {
-        // Nothing found
-        throw "Arguments \"" + key + "\" not found";
+template <typename T> void Arguments::add_arg(string key, T value) {
+    // First, check for duplicates
+    for (int i = 0; i < this->size; i++) {
+        if (this->args[i].key.compare(key) == 0) {
+            // There is a duplicate
+            throw "Duplicate key \"" + key + "\"";
+        }
     }
-    // Check if given type is correct
-    if (typeid(T) != args.get_type(key)) {
-        throw "Argument \"" + key + "\" is not of given type";
+
+    // Check if we should resize
+    if (this->size == this->max_size - 1) {
+        // We do, so resize it to +1 (since there won't be many elements anyway)
+        int new_max_size = this->max_size + 1;
+        Arg *new_args = new Arg[new_max_size];
+
+        // Copy the old array
+        for (int i = 0; i < this->max_size; i++) {
+            new_args[i] = this->args[i];
+        }
+
+        // Delete the old one
+        delete[] this->args;
+
+        // Set the new array & size
+        this->args = new_args;
+        this->max_size = new_max_size;
     }
-    // Now, return the casted version to the reference
-    return (T) (*val);
+    
+    // Set the new value
+    this->args[this->size].key = key;
+    this->args[this->size].value = (void*) &value;
+    this->size++;
+}
+
+template <typename T> T Arguments::get (string key) {
+    // Search for element with given key
+    for (int i = 0; i < this->size; i++) {
+        if (this->args[i].key.compare(key) == 0) {
+            // Return the object matching to the value
+            return (*((T*) this->args[i].value));
+        }
+    }
+    // Not found
+    throw "Unknown key \"" + key + "\"";
 }
 
 
 int main() {
-    cout << "Hello there!" << endl;
-
-    Arguments<string, int, bool> args = Arguments<string, int, bool>("Hello there!", 5, false);
-    args.set_keys(new string[3] {"name", "age", "smart"});
-    // Print the third element
-    cout << "args[2] = " << get_arg<bool>(args, "smart") << endl;
+    Arguments args = Arguments("age", (string) "Hello there!");
+    // Print the first argument
+    cout << args.get<string>("age") << endl;
 }
