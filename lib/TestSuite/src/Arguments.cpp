@@ -51,10 +51,12 @@ template <typename ... Types> Arguments<Types...>::~Arguments() {
         delete[] this->keys;
     }
 }
-
 template <typename ... Types> void Arguments<Types...>::set_keys(string *keys) {
     // Simply copy the keys pointer
     this->keys = keys;
+}
+template <typename ... Types> void Arguments<Types...>::&operator[] (std::string key) {
+    
 }
 
 
