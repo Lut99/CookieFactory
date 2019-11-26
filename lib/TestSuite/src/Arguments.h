@@ -4,6 +4,8 @@
 *  Header file for Arguments.cpp.
 **/
 
+// TODO: Re-do everything using Arg this time
+
 #ifndef ARGUMENTS_H
 #define ARGUMENTS_H
 
@@ -28,7 +30,7 @@ namespace TestSuite {
         private:
             int size;
             std::string *keys;
-            std::tuple<Types> values;
+            std::tuple<Types...> values;
         public:
             /* The Arguments class stores many different types of variables, stored in a list and accessible by a key. */
             Arguments(Types... values);
@@ -37,9 +39,14 @@ namespace TestSuite {
             /* Sets the keys to the given values, in order as given. The given pointer isn't copied, and will be freed once the Arguments class is freed. */
             void set_keys(std::string *keys);
 
-            /* Returns value for given key. */
-            template<class T> T &operator[] (std::string key);
+            /* Return the value of given key */
+            void* get_elem(std::string key);
+            /* Return type id of argument of given key */
+            const std::type_info& get_type(std::string key);
     };
+
+    /* Converts given void* argument to a type */
+    template <typename T, class ... Types> T get_arg(Arguments<Types...> args, std::string key);
 }
 
 #endif
