@@ -16,6 +16,8 @@ namespace TestSuite {
         public:
             std::string key;
             void *value;
+            std::size_t type;
+            std::string type_name;
     };
 
     class Arguments {
@@ -23,7 +25,9 @@ namespace TestSuite {
             int size;
             int max_size;
             Arg *args;
-
+            
+            /* Does the actual storing, without any checking */
+            template <typename T> void _store_pair(std::string key, T value);
             /* Stores one string / key pair */
             template <typename T> void store_pairs(std::string key, T value);
             /* Stores multiple string / key pairs */

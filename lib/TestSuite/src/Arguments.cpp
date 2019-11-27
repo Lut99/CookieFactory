@@ -28,7 +28,7 @@ template <typename T> Arguments::Arguments(string key, T value) {
     this->size = 0;
     this->max_size = 1;
     this->args = new Arg[1];
-    
+
     // Next, use the basecase from the recursive function to add all the argument
     this->store_pairs(key, value);
 }
@@ -48,20 +48,34 @@ Arguments::~Arguments() {
     delete[] this->args;
 }
 
+template <typename T> void Arguments::_store_pair(string key, T value) {
+    // Fill the arg struct
+    this->args[this->size].key = key;
+    this->args[this->size].value = static_cast<void*>(&value);
+    this->args[this->size].type = typeid(T).hash_code();
+    // Also save the type code
+    const char* type_name = typeid(T).name();
+    stringstream sstr;
+    for (int i = 0; type_name[i] != '\0'; i++) {
+        sstr << type_name[i];
+    }
+    this->args[this->size].type_name = sstr.str();
+
+    // Increment the size
+    this->size++;
+}
 template <typename T> void Arguments::store_pairs(string key, T value) {
     /* Base case for recursive function */
 
     // Check if string already exists
     for (int i = 0; i < this->size; i++) {
         if (this->args[i].key.compare(key) == 0) {
-            throw "Duplicate key \"" + key + "\"";
+            throw runtime_error("Duplicate key \"" + key + "\"");
         }
     }
 
     // Add key and the value
-    this->args[this->size].key = key;
-    this->args[this->size].value = (void*) &value;
-    this->size++;
+    this->_store_pair(key, value);
 }
 template <typename T, class ... Types> void Arguments::store_pairs(string key, T value, Types... args) {
     /* Recursive case for recursive function */
@@ -69,14 +83,12 @@ template <typename T, class ... Types> void Arguments::store_pairs(string key, T
     // Check if string already exists
     for (int i = 0; i < this->size; i++) {
         if (this->args[i].key.compare(key) == 0) {
-            throw "Duplicate key \"" + key + "\"";
+            throw runtime_error("Duplicate key \"" + key + "\"");
         }
     }
 
     // Add key and the value
-    this->args[this->size].key = key;
-    this->args[this->size].value = (void*) &value;
-    this->size++;
+    this->_store_pair(key, value);
 
     // Do the rest
     this->store_pairs(args...);
@@ -87,7 +99,7 @@ template <typename T> void Arguments::add_arg(string key, T value) {
     for (int i = 0; i < this->size; i++) {
         if (this->args[i].key.compare(key) == 0) {
             // There is a duplicate
-            throw "Duplicate key \"" + key + "\"";
+            throw runtime_error("Duplicate key \"" + key + "\"");
         }
     }
 
@@ -111,26 +123,44 @@ template <typename T> void Arguments::add_arg(string key, T value) {
     }
     
     // Set the new value
-    this->args[this->size].key = key;
-    this->args[this->size].value = (void*) &value;
-    this->size++;
+    this->_store_pair(key, value);
 }
 
 template <typename T> T Arguments::get (string key) {
     // Search for element with given key
     for (int i = 0; i < this->size; i++) {
         if (this->args[i].key.compare(key) == 0) {
+            // Check if the type compares
+            if (this->args[i].type != typeid(T).hash_code()) {
+                throw runtime_error("Key \"" + key + "\" has type \"" + this->args[i].type_name + "\", but got type \"" + typeid(T).name() + "\"");
+            }
             // Return the object matching to the value
-            return (*((T*) this->args[i].value));
+            return (*(static_cast<T*>(this->args[i].value)));
         }
     }
     // Not found
-    throw "Unknown key \"" + key + "\"";
+    throw runtime_error("Unknown key \"" + key + "\"");
+}
+
+
+void* test(void* arg) {
+    return arg;
+}
+
+template <typename T> void* to_pointer (T input) {
+    // Store it in memory
+    T* mem = new T;
+    (*mem) = input;
+    return (void*) mem;
+}
+template <typename T> T from_pointer(void* input) {
+    return (*((string*) input));
 }
 
 
 int main() {
-    Arguments args = Arguments("age", (string) "Hello there!");
-    // Print the first argument
-    cout << args.get<string>("age") << endl;
+    string name = "Carl";
+    int age = 19;
+    Arguments args = Arguments("name", name, "age", age);
+    cout << args.get<string>("name") << ", " << args.get<int>("age") << endl;
 }
