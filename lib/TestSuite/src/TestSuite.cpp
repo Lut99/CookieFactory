@@ -8,3 +8,4 @@
 **/
 
 #include <iostream>
+#include "TestSuite.h"

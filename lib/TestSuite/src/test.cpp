@@ -11,6 +11,10 @@ template <typename T> T from_pointer(void *p) {
     // Cast and return
     return (*(static_cast<T*>(p)));
 }
+template <typename T> void delete_pointer(void *p) {
+    // Cast and delete
+    delete static_cast<T*>(p);
+}
 
 int main() {
     string test = "Hello, there!";
@@ -19,7 +23,7 @@ int main() {
     cout << from_pointer<string>(p) << endl;
 
     // Delete
-    delete p;
+    delete_pointer<string>(p);
 
     return 0;
 }
